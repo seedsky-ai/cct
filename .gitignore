@@ -1,0 +1,29 @@
+# Key red line: neither plaintext nor ciphertext enters git (key_fp fingerprint may, the key never)
+.key
+.key.enc
+*.key
+*.key.enc
+*.enc
+.env
+.env.*
+
+# Runtime artifacts
+*.tgz
+releases/
+node_modules/
+__pycache__/
+*.pyc
+*.log
+*.jsonl
+capture/
+captures/
+.ipynb_checkpoints/
+
+# Session artifacts (ledger directory / the per-session settings pin-back file — both can be
+# pointed inside the checkout directory)
+cct_sessions/
+.cct/
+*_p[0-9]*.settings.json
+
+# System leftovers
+.DS_Store

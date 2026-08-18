@@ -1,0 +1,2 @@
+Reasoning Effort: Very high — exhaustive, careful, and unhurried.
+You MUST reason with great depth and rigor, leaving nothing to chance: decompose the problem into its fundamental components, trace every causal chain to its root, and resolve the underlying cause rather than any surface symptom.

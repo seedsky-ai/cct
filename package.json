@@ -1,0 +1,40 @@
+{
+  "name": "@seedsky/cct",
+  "version": "0.1.7",
+  "description": "Thinking-tier launcher for Claude Code on DeepSeek: pick Flex/Value/Deeper at startup, transparent relay, per-session ledger and a cost-saving receipt on exit.",
+  "bin": {
+    "cct": "cct.js"
+  },
+  "files": [
+    "cct",
+    "cct.js",
+    "cct.py",
+    "picker.py",
+    "relay_anthropic.py",
+    "keystore.py",
+    "tiers.json",
+    "preambles/tb_t2_two_answered.txt",
+    "preambles/tb_t1_medium.txt",
+    "preambles/fx_mid_vhigh.txt",
+    "preambles/fx_esc_wb.txt",
+    "README.md",
+    "LICENSE"
+  ],
+  "engines": {
+    "node": ">=16"
+  },
+  "license": "SEE LICENSE IN LICENSE",
+  "publishConfig": {
+    "access": "public"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/seedsky-ai/cct.git"
+  },
+  "homepage": "https://github.com/seedsky-ai/cct#readme",
+  "author": "Chen Kang <hello@seedsky.ai>",
+  "bugs": {
+    "url": "https://github.com/seedsky-ai/cct/issues",
+    "email": "hello@seedsky.ai"
+  }
+}

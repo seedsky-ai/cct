@@ -1,0 +1,74 @@
+cct — Preview License
+Copyright (c) 2026 Chen Kang. All rights reserved.
+
+This software (the "Software") is made available for preview and evaluation.
+It is NOT open source. The terms below apply to every copy you obtain.
+
+1. GRANT
+   Subject to these terms, you are granted a non-exclusive, non-transferable,
+   royalty-free right to:
+   (a) install and run the Software for your own evaluation and for personal or
+       internal use (including internal use within your company); and
+   (b) modify the Software, and run your modified copies, for those same
+       purposes — patch a bug, adapt it to your environment, experiment freely.
+   This license is revocable only if you breach it (see section 8).
+
+2. RESTRICTIONS
+   Without prior written permission from the copyright holder, you may not:
+   (a) redistribute, publish, sublicense, sell or otherwise transfer the
+       Software or any modified version of it — keep your changes to yourself,
+       or send them back as a contribution (see section 3);
+   (b) host or operate the Software, modified or not, as a service offered to
+       third parties;
+   (c) extract, reuse or publish the prompt files under `preambles/` or the
+       calibration data in `tiers.json` (including per-tier output-per-turn
+       figures) separately from the Software;
+   (d) remove or alter any copyright, license or attribution notice.
+
+3. CONTRIBUTIONS AND FEEDBACK
+   Contributions are welcome. You may fork the public repository and open pull
+   requests for the sole purpose of proposing changes back to the copyright
+   holder; such a fork is permitted under section 1(b) and is not a breach of
+   section 2(a), provided it stays a proposal and is not promoted as a separate
+   distribution of the Software.
+   By submitting a contribution, bug report, suggestion or other feedback, you
+   grant the copyright holder an irrevocable, royalty-free right to use, modify
+   and relicense it, without obligation to you.
+
+4. NO WARRANTY
+   THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+   IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+   FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+
+5. LIMITATION OF LIABILITY
+   TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE COPYRIGHT HOLDER SHALL NOT BE
+   LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF
+   CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+   SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE. This includes, without
+   limitation, any API charges, model outputs, data loss or service interruption
+   arising from use of the Software.
+
+6. THIRD-PARTY SERVICES
+   The Software routes requests to third-party APIs that you configure and pay
+   for with your own credentials. Your use of those services is governed solely
+   by their own terms; the copyright holder is not a party to that relationship
+   and provides no guarantee about their pricing, availability or behaviour.
+
+7. TERM AND CHANGES
+   This preview license may change in future releases; the version distributed
+   with a given release governs that release. The copyright holder reserves the
+   right to release the Software under different terms, including an open-source
+   license, at any time. Rights under this license may be assigned by the
+   copyright holder to a successor entity.
+
+8. TERMINATION
+   This license terminates automatically if you breach section 2 and do not cure
+   the breach within 30 days of being notified. It is not otherwise revocable:
+   as long as you comply, your right to install, run and locally modify the
+   Software continues for the release you obtained. On termination you must stop
+   using the Software; sections 4, 5 and 6 survive.
+
+Requests for permission under section 2 (redistribution, hosting as a service,
+or separate use of the prompt/calibration assets) — and any other licensing
+question — go to hello@seedsky.ai, or to the issue tracker of the project's
+public repository.

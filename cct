@@ -1,0 +1,28 @@
+#!/bin/bash
+# cct — direct repo entry point (./cct ...). The npm-installed bin goes via cct.js (Node shim).
+# The implementation all moved into cct.py (2026-08-16, one code path for Windows/macOS/Linux);
+# this file only does: find a usable Python 3 → resolve its own real path → exec cct.py.
+# Real path via python, not readlink -f: readlink before macOS 12.3 has no -f (BSD family).
+
+# On a mac without CLT, /usr/bin/python3 is a placeholder stub that pops a GUI install dialog
+# (command -v matches it all the same), and even probing pops the dialog → rule this form out with
+# xcode-select first (audit measured: without the check it pops twice and prints nothing).
+if [ "$(uname 2>/dev/null)" = Darwin ] && [ -z "${CCT_PYTHON:-}" ] \
+   && [ "$(command -v python3 2>/dev/null)" = /usr/bin/python3 ] \
+   && ! /usr/bin/xcode-select -p >/dev/null 2>&1; then
+  echo "✗ macOS: missing command line developer tools — run xcode-select --install, or brew install python3"
+  exit 1
+fi
+PY=""
+for c in "${CCT_PYTHON:-}" python3 python; do
+  [ -n "$c" ] || continue
+  # Version probe (same as cct.js): blocks python2 and bad stubs, no f-string SyntaxError on screen
+  if command -v "$c" >/dev/null 2>&1 \
+     && "$c" -c 'import sys; sys.exit(0 if sys.version_info >= (3, 8) else 1)' >/dev/null 2>&1; then
+    PY="$c"; break
+  fi
+done
+[ -n "$PY" ] || { echo "✗ Python >=3.8 required (set CCT_PYTHON to specify)"; exit 1; }
+SELF="$("$PY" -c 'import os,sys; print(os.path.realpath(sys.argv[1]))' "${BASH_SOURCE[0]}")"
+[ -n "$SELF" ] || { echo "✗ failed to resolve cct path"; exit 1; }
+exec "$PY" "$(dirname "$SELF")/cct.py" "$@"
