@@ -129,6 +129,7 @@
    "file": "preambles/pro_tm03.txt",
    "keep_effort": true,
    "force_model": "deepseek-v4-pro",
+   "force_effort": "high",
    "aliases": [
     "tm03",
     "tripara"
@@ -141,6 +142,7 @@
    "file": "preambles/pro_qt05.txt",
    "keep_effort": true,
    "force_model": "deepseek-v4-pro",
+   "force_effort": "high",
    "aliases": [
     "qt05"
    ],
@@ -153,6 +155,7 @@
    "msg_system_file": "preambles/pro_tm03.txt",
    "keep_effort": true,
    "force_model": "deepseek-v4-pro",
+   "force_effort": "high",
    "aliases": [
     "tm03x5"
    ],

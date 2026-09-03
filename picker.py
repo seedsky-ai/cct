@@ -395,15 +395,22 @@ def pick():
     tw, th = term_size()
     if th < 6:                                             # gate ②¾ too short: no room for
         return fallback_list(), False                      # the canvas + banner
-    if tw < 55:                                            # gate ③ narrow: tighten, no brackets
+    # gate ③ the row does not fit: tighten the gaps, drop the brackets, rebuild.
+    # The trigger is the measured row width, not a fixed column count. The old constant 55 was
+    # tuned when the table held four short labels and the row was 40 cells wide at the default
+    # gap — comfortably inside 55. Six labels make it 61, so 55-63 tightened nothing and clip()
+    # cut the last label off the right edge: a 60-column split pane drew five tiers out of six
+    # while the arrow key still walked into the one that was not there.
+    # frame() lays the row out at pad = max(2, …) and clip() trims at tw-1, so a fully visible
+    # row needs ROW_W + 3 columns.
+    if tw < ROW_W + 3:
         GAP, BRACKETS = 2, False
-        # Recompute (2026-09-02): tightening GAP used to be cosmetic because four short labels
-        # fit either way. With six tiers the row is 61 cells at GAP 6 and 41 at GAP 2 — without
-        # this rebuild the tightening never reaches ROW_W, and gate ④ below would push every
-        # terminal under 65 columns into the numbered list.
         _build_layout()
     if tw < 40:                                            # gate ④ extremely narrow: list
         return fallback_list(), False
+    # Below 40 the numbered list takes over; between 40 and the tightened row width the row is
+    # still clipped, which is the degradation this picker has always accepted — clip() guarantees
+    # no line ever wraps, and a truncated label beats a canvas that scrolls.
     res = _animate()
     if res[0] == "ok":
         return res[1], True

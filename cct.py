@@ -362,6 +362,7 @@ def receipt(ledger: str, sess_label: str = "") -> None:
     #    pressed themselves ──
     labels = {t["name"]: t.get("label") or t["name"] for t in tj["tiers"]}
     pts = {t["name"] for t in tj["tiers"] if t.get("passthrough")}
+    feffs = {t["name"]: str(t["force_effort"]) for t in tj["tiers"] if t.get("force_effort")}
     ok_rows = [r for r in rows if r.get("status") == 200 and r.get("out")]
     # The Flex group is aggregated by the /effort word the user pressed — including mapped rows
     # (the user pressed medium/xhigh, so they should not see the Classic/Extra display labels in
@@ -442,10 +443,18 @@ def receipt(ledger: str, sess_label: str = "") -> None:
               f"{f' (+{_more} more)' if _more else ''} is not governed by tiers")
     if pinned_ign:
         # the third line uses the same opening as the banner + all English
-        lock = next((labels.get(k, k) for k, _ in tiers.most_common() if k not in pts), "this tier")
+        _lk = next((k for k, _ in tiers.most_common() if k not in pts), None)
+        lock = labels.get(_lk, _lk) if _lk else "this tier"
         ptl = next((labels.get(n, n) for n in pts if n in labels), "Flex")
-        print(f"◆ /effort locked by {lock} ×{pinned_ign} — for free /effort choice, "
-              f"use {ptl}")
+        if _lk in feffs:
+            # A force_effort tier does pin the level, so "locked" is true — but say which level
+            # and why, otherwise it reads as the generic virtual-tier lock and the user cannot
+            # tell that the value is the one the tier was measured at.
+            print(f"◆ /effort pinned to {feffs[_lk]} by {lock} ×{pinned_ign} — the level it was "
+                  f"calibrated at; for a free /effort choice, use {ptl}")
+        else:
+            print(f"◆ /effort locked by {lock} ×{pinned_ign} — for free /effort choice, "
+                  f"use {ptl}")
     if any(k in pts for k in tiers):
         # symmetric signpost for Flex sessions: the same reverse hint as the banner
         _pins = [str(labels.get(n, n)) for n in (tj.get("picker_order") or [])
@@ -711,19 +720,22 @@ def main(argv: list) -> int:
                 _why = re.sub(r"\s*\([^)]*\)\s*$", "", str(_ent.get("desc", ""))).strip(" ·")
                 _pt = next((str(e.get("label") or e["name"]) for e in tt["tiers"]
                             if e.get("passthrough")), None)
-                if _ent.get("keep_effort"):
-                    # keep_effort tiers splice the preamble but never touch output_config, so the
-                    # client's own /effort is what goes upstream — saying "locked" here would be
-                    # a plain falsehood. (Applies to the anchored tiers: cc, proven, swift, peak.)
-                    print(f"  /effort forwarded as you set it — {_why or 'this tier'}")
+                _hint = f" · for free /effort choice, use {_pt}" if _pt else ""
+                if _ent.get("force_effort"):
+                    # These tiers do not clear the base effort the way the tuned tiers do; they
+                    # hold it at the value they were measured with. Naming the value matters —
+                    # "locked" alone reads as the generic virtual-tier lock and hides which
+                    # level the session is actually running.
+                    print(f"  /effort held at {_ent['force_effort']} — {_why or 'this tier'}"
+                          f"{_hint}")
                 else:
-                    _hint = f" · for free /effort choice, use {_pt}" if _pt else ""
                     print(f"  /effort locked for end-to-end tuning — {_why or 'this tier'}{_hint}")
-            if _ent.get("force_model"):
-                # Say it out loud: this tier answers on one model whatever /model shows, because
-                # that is the only model it was measured on.
-                print(f"  model pinned to {_ent['force_model']} — this tier is calibrated "
-                      f"on it alone")
+            if _ent.get("force_model") or _ent.get("force_effort"):
+                # Say it out loud: this tier answers on one model at one thinking level whatever
+                # /model and /effort show, because that pair is what it was measured on.
+                _pins = " / ".join(x for x in (_ent.get("force_model"),
+                                               _ent.get("force_effort")) if x)
+                print(f"  pinned to {_pins} — the combination this tier is calibrated on")
         else:
             print(f"◆ tier={tier} · model={_sess_model} · relay=127.0.0.1:{port}")
 
@@ -769,6 +781,17 @@ def main(argv: list) -> int:
             # clearing it, CC falls back to the default high). Zero output on success.
             cenv.pop("CLAUDE_CODE_EFFORT_LEVEL", None)
             _penv["CLAUDE_CODE_EFFORT_LEVEL"] = ""
+        elif _ent and _ent.get("force_effort"):
+            # A tier that names its own effort pins CC to exactly that, not to pinned_effort.
+            # These tiers were calibrated as a (preamble, effort) pair with the relay leaving
+            # effort alone, so pinning the usual max here would send a level the tier was never
+            # measured at — the relay, honouring keep_effort, would forward it untouched and the
+            # session would silently run a different arm. The relay pins the same value again on
+            # the way upstream; this half only keeps CC's own client-side behaviour consistent
+            # with it.
+            _pe = str(_ent["force_effort"])
+            cenv["CLAUDE_CODE_EFFORT_LEVEL"] = _pe
+            _penv["CLAUDE_CODE_EFFORT_LEVEL"] = _pe
         elif _ent and tt.get("pinned_effort"):
             # A pinned-tier session pins the CC side to max as well. The API side is already
             # taken over by the relay (effort is always rewritten to low to clear the base
