@@ -529,6 +529,18 @@ mock-upstream and offline tests cost nothing.
 
 ## Running the relay standalone (advanced)
 
+To reproduce exactly what a tier sends, point the relay at the shipped tier table rather than
+at `DA_PREAMBLE_FILE`:
+
+```bash
+DA_TIER_TABLE=$(npm root -g)/@seedsky/cct/tiers.json DA_TIER=proven \
+DA_CAPTURE=/tmp/cap DA_CAPTURE_WHAT=req python3 relay_anthropic.py
+```
+
+The tier is what carries the model pin, the effort pin and the splice position, so a preamble
+mounted by hand through `DA_PREAMBLE_FILE` is a different construction from the tier of the same
+name — deliberately: `DA_PREAMBLE_FILE` keeps the behaviour it has always had.
+
 For use without the launcher, from another client or a container:
 
 ```bash

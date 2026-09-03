@@ -477,6 +477,16 @@ Value 与 Deeper 目前标 `(beta)`。
 
 ## 独立跑中继（进阶）
 
+想复现某个档位**实际发出去的字节**，请让中继读打包好的档位表，而不是用 `DA_PREAMBLE_FILE`：
+
+```bash
+DA_TIER_TABLE=$(npm root -g)/@seedsky/cct/tiers.json DA_TIER=proven \
+DA_CAPTURE=/tmp/cap DA_CAPTURE_WHAT=req python3 relay_anthropic.py
+```
+
+模型钉死、思考档位钉死、前缀拼接位置这三样都由档位携带，所以用 `DA_PREAMBLE_FILE` 手工挂同一份
+前缀得到的是**另一个构型** —— 这是有意为之：`DA_PREAMBLE_FILE` 保持它一贯的行为不变。
+
 不经启动壳，从别的客户端或容器里用：
 
 ```bash

@@ -130,6 +130,7 @@
    "keep_effort": true,
    "force_model": "deepseek-v4-pro",
    "force_effort": "high",
+   "splice_skip_billing": true,
    "aliases": [
     "tm03",
     "tripara"
@@ -143,6 +144,7 @@
    "keep_effort": true,
    "force_model": "deepseek-v4-pro",
    "force_effort": "high",
+   "splice_skip_billing": true,
    "aliases": [
     "qt05"
    ],
@@ -156,6 +158,7 @@
    "keep_effort": true,
    "force_model": "deepseek-v4-pro",
    "force_effort": "high",
+   "splice_skip_billing": true,
    "aliases": [
     "tm03x5"
    ],

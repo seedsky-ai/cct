@@ -232,9 +232,27 @@ def _thinking_on(body: dict) -> None:
         body["thinking"] = th
 
 
-def _splice_system(body: dict, pre: str) -> None:
-    """Shared implementation of front-splicing (construction B); the single-tier env mode and
-    the tier-table mode use exactly the same byte-level convention."""
+def _splice_system(body: dict, pre: str, skip_billing: bool = False) -> None:
+    """Shared implementation of front-splicing (construction B).
+
+    skip_billing decides where the preamble lands when the client's system field is a block
+    list. Claude Code's system[0] is an "x-anthropic-billing-header" line the upstream drops
+    via a startswith() check, so splicing in front of it defeats that check and leaks the
+    billing line (~28 tokens) into the model's context; skipping it lands the preamble on the
+    first real text block instead.
+
+    ⚠ Do NOT "clean this up" by picking one behaviour for every tier. The two tier families
+    were calibrated at different positions and their published numbers are only valid at the
+    position they were measured at:
+      · the tuned tiers (Value / Classic / Extra / Deeper) were measured with the preamble
+        BEFORE the billing header — system[0] = preamble + billing header. Verified against
+        2687 archived requests.
+      · the pro register tiers (Proven / Swift / Peak) were measured with it AFTER — system[0]
+        stays the bare billing header. Verified against their own archives.
+    Unifying the two would silently invalidate one family's numbers. The per-tier flag
+    (tiers.json "splice_skip_billing") is what keeps both honest; the env single-tier mode
+    keeps the pre-existing behaviour, so nothing already published changes underneath.
+    """
     if not pre:
         return
     s = body.get("system")
@@ -243,19 +261,20 @@ def _splice_system(body: dict, pre: str) -> None:
     elif isinstance(s, str):
         body["system"] = pre + s
     elif isinstance(s, list) and s:
-        # Skip billing-header blocks when choosing the splice target. Claude Code's system[0] is
-        # an "x-anthropic-billing-header" block that the upstream drops via a startswith() check;
-        # splicing in front of it defeats that check and leaks the billing line (~28 tokens) into
-        # the model's context. Land on the first non-billing text block.
         tgt = None
-        for blk in s:
-            if isinstance(blk, dict) and blk.get("type") == "text" and \
-                    not (blk.get("text") or "").startswith("x-anthropic-billing-header"):
-                tgt = blk
-                break
+        if skip_billing:
+            for blk in s:
+                if isinstance(blk, dict) and blk.get("type") == "text" and \
+                        not (blk.get("text") or "").startswith("x-anthropic-billing-header"):
+                    tgt = blk
+                    break
+        else:
+            first = s[0]
+            if isinstance(first, dict) and first.get("type") == "text":
+                tgt = first
         if tgt is not None:
             tgt["text"] = pre + tgt.get("text", "")
-        else:                             # no non-billing text block: insert a fresh one up front
+        else:                             # no usable text block: insert a fresh one up front
             s.insert(0, {"type": "text", "text": pre})
     elif isinstance(s, list):
         s.append({"type": "text", "text": pre})
@@ -324,6 +343,10 @@ if TIER_TABLE_FILE:
         # Pinned here as well as in the launcher because the environment variable cannot reach
         # every caller (the client's own background requests, a relay run standalone).
         _feff = str(_t.get("force_effort") or "")
+        # splice_skip_billing: where this tier's preamble lands relative to Claude Code's
+        # billing-header block. Per tier because the two families were measured at different
+        # positions — see the warning in _splice_system.
+        _skipbh = bool(_t.get("splice_skip_billing"))
         if _pre is None or _msg is None:                  # a mounted file was unreadable
             continue                                      # this tier stays out of the table
         for _n in [_t["name"], *_t.get("aliases", [])]:
@@ -336,7 +359,8 @@ if TIER_TABLE_FILE:
                                  "keep": bool(_t.get("keep_effort")),
                                  "msg": _msg,
                                  "force": _force,
-                                 "feff": _feff}
+                                 "feff": _feff,
+                                 "skipbh": _skipbh}
     for _bn, _why in _TIER_BROKEN.items():
         print(f"[relay-anthropic] WARN: tier {_bn!r} disabled — {_why}", file=sys.stderr)
     TIER_DEFAULT = str(_tt.get("default", _tt["tiers"][0]["name"])).lower()
@@ -740,7 +764,7 @@ class H(BaseHTTPRequestHandler):
                         oc["effort"] = "low"
                         body["output_config"] = oc
                         _thinking_on(body)         # reclaim the thinking switch (see docstring)
-                    _splice_system(body, t["pre"])
+                    _splice_system(body, t["pre"], t.get("skipbh", False))
                     tier_msg = t.get("msg") or ""  # per-turn reminder mounted by the tier
                 # Pin model and effort last, so they cover passthrough and injection tiers alike
                 # and land on top of whatever the branches above wrote.
