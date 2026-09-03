@@ -11,6 +11,47 @@ This file records **user-visible changes** only: what capability was added, what
 
 ---
 
+## 0.1.10 — 2026-09-03 · Three pro-only register tiers: Proven / Swift / Peak
+
+- **Picker goes from three tiers to six.** `Proven` / `Swift` / `Peak` join `Flex` / `Value` / `Deeper`.
+  They come from a different line of work than the depth-tuned tiers: each splices a **register
+  prefix** in front of the system prompt, measured on agentic SWE tasks run to completion with a
+  verifier. The old first-turn `Anchor` experiment is gone: its 136-byte text is the last
+  paragraph of `Proven`'s preamble (one anchor word apart), it had no accuracy or behaviour
+  measurement behind it, and its own description conceded it was a no-op past the first turn.
+- **New `tiers.json` field `force_model`.** A tier declaring it answers on that model only, whatever
+  the client asked for. Enforced twice: `cct` exports `ANTHROPIC_MODEL=<model>` for Claude Code, and
+  the relay rewrites `body.model` on the way upstream — the second layer is what catches Claude
+  Code's background small-model calls, which the environment variable cannot reach. **This changes
+  the model-channel contract**: foreign model names, previously always forwarded verbatim, are
+  rewritten inside such a tier. The ledger keeps `asked` beside the new `forced` field, and the
+  session banner states the pin, so the rewrite is never invisible.
+- **New `tiers.json` field `msg_system_file`.** Lets a tier mount a per-turn reminder of its own,
+  dropped in right after the first user message and left at that fixed index on every request, so
+  it composes with the preamble splice without disturbing the prefix cache. Used by `Peak`.
+- The three new tiers carry `keep_effort`, so **`/effort` is forwarded as you set it** — they splice
+  their prefix and touch nothing else, which is the construction they were calibrated in. The
+  session banner no longer claims `/effort locked` for such tiers; it said so before and that was
+  simply wrong.
+- Picker layout: tightening the gap on a narrow terminal now recomputes the row width. With four
+  short labels this was cosmetic; with six it is the difference between a fitted row and one
+  trimmed at the right edge.
+- **Read the tier notes before picking one.** Official-API results, `deepseek-v4-pro`: `Proven`
+  solves 20 of 29 tasks (one run per task, so no ambiguity in that number); `Swift` 7 of 8, but on
+  a task set chosen *because arms disagreed on it*, so that figure is decoration; `Peak` 18–21 of
+  30 depending on which repeat run is counted.
+  `Peak` shows **no gain over `Proven`** — p = 0.75–1.00 under every de-duplication rule — and
+  ships for completeness only.
+  Against running with **no prefix at all**, the benchmark cannot resolve the difference: the
+  no-prefix arm flips outcome on 8 of its 15 repeated tasks, so the comparison ranges from
+  20-vs-17 (p = 0.42) to 20-vs-10 (p = 0.01) on the same 29 tasks depending on which of its runs
+  you pick. `Proven` leads in every slice and loses in none, but **no single p-value for it is
+  meaningful**. Prefer `Proven`; do not read one or two tasks as a real difference.
+  `Swift` tells the model it has only a shell and a file editor — the tools stay wired up, but
+  sub-agents, skills and task lists go unused. All three bill at pro rates (~3× flash).
+
+---
+
 ## 0.1.7 — 2026-08-17 · Non-official upstream: warn only, do not degrade
 
 - **Semantics inverted**: when `DA_UPSTREAM` points at a third-party proxy / self-hosted gateway, the tier table, the `/effort` mapping, and the preamble and base-effort rewrites **still take effect as usual** (previously: warn + force pure passthrough, with all tiers disabled). The warning now states the facts: tiers and pricing are calibrated against `api.deepseek.com`, so on another upstream the effect and the bill can differ.

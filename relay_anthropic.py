@@ -10,7 +10,10 @@ Why ANTHROPIC_BASE_URL cannot simply point at DeepSeek (three reasons, each a ha
      transparent proxy must not tamper with the request, otherwise the ledger drifts from
      reality and nothing can be attributed after the fact. The model is decided by the caller
      via `--model` / `ANTHROPIC_MODEL`; the relay only **observes and warns**
-     (see `DA_PIN`, off by default).
+     (see `DA_PIN`, off by default). Two explicit opt-ins rewrite the name instead of observing
+     it: `DA_PIN`, and a tier that declares `force_model` in tiers.json (single-model tiers —
+     the arm behind them was only measured on that one model). Both keep the client's original
+     name in the ledger under `asked`, so nothing about the rewrite is hidden.
   ② **Ledger**: a direct connection has no token/cost record at all. An agent loop makes 8-20
      calls per step; without a ledger there is no way to control the budget. The official docs
      also state that `cache_control` is **ignored** ⇒ no cache discount, so it must all be
@@ -174,6 +177,40 @@ def _inject_preamble(body: dict) -> None:
     _splice_system(body, PREAMBLE)
 
 
+def _reminder(text: str) -> dict:
+    """The official wire form of a mid-conversation system message.
+
+    Established by two independent checks rather than guessed: asking the upstream to quote back
+    what preceded its turn returns "<system-reminder>\\n…\\n</system-reminder>", and the prefix
+    cache behaves as an exact-match oracle — re-sending a warm request carrying
+    {"role":"system","content":TXT} hits every cached token, as does sending this wrapper as its
+    own user message, while gluing it onto the previous user turn stalls. So the upstream turns a
+    system turn into this wrapper and renders it on the user side.
+    """
+    return {"role": "user",
+            "content": f"<system-reminder>\n{text.rstrip()}\n</system-reminder>"}
+
+
+def _insert_tier_reminder(body: dict, text: str) -> None:
+    """Per-turn reminder mounted by the session tier (tiers.json `msg_system_file`).
+
+    It lands right after the first user message — the slot Claude Code uses for its agent-type
+    roster — and never touches the top-level system field, so it composes with the preamble
+    splice. The index is fixed, so the block sits at the same place on every request and the
+    prefix cache is unaffected; re-sending it on a retry is a no-op because an identical block
+    already occupying the slot is left alone.
+    """
+    if not text:
+        return
+    ms = body.get("messages")
+    if not isinstance(ms, list) or not ms:
+        return
+    blk = _reminder(text)
+    at = 1 if ms[0].get("role") == "user" else 0
+    if not (len(ms) > at and ms[at] == blk):
+        ms.insert(at, blk)
+
+
 def _thinking_on(body: dict) -> None:
     """Reclaim the "thinking switch" on injection tiers (0.1.6).
 
@@ -206,10 +243,19 @@ def _splice_system(body: dict, pre: str) -> None:
     elif isinstance(s, str):
         body["system"] = pre + s
     elif isinstance(s, list) and s:
-        first = s[0]
-        if isinstance(first, dict) and first.get("type") == "text":
-            first["text"] = pre + first.get("text", "")
-        else:                             # first block is not a text block (rare): insert before it
+        # Skip billing-header blocks when choosing the splice target. Claude Code's system[0] is
+        # an "x-anthropic-billing-header" block that the upstream drops via a startswith() check;
+        # splicing in front of it defeats that check and leaks the billing line (~28 tokens) into
+        # the model's context. Land on the first non-billing text block.
+        tgt = None
+        for blk in s:
+            if isinstance(blk, dict) and blk.get("type") == "text" and \
+                    not (blk.get("text") or "").startswith("x-anthropic-billing-header"):
+                tgt = blk
+                break
+        if tgt is not None:
+            tgt["text"] = pre + tgt.get("text", "")
+        else:                             # no non-billing text block: insert a fresh one up front
             s.insert(0, {"type": "text", "text": pre})
     elif isinstance(s, list):
         s.append({"type": "text", "text": pre})
@@ -241,16 +287,61 @@ if TIER_TABLE_FILE:
     import pathlib as _pl2
     _tt = json.loads(_pl2.Path(TIER_TABLE_FILE).read_text(encoding="utf-8"))
     _tbase = _pl2.Path(TIER_TABLE_FILE).resolve().parent
+    _TIER_BROKEN = {}                                    # tier name → why it is unusable
+
+    def _tier_block(_rel, _tier):
+        """Read a file a tier mounts, with the byte hygiene the whole relay shares.
+
+        An unreadable file disables THAT TIER instead of killing the process. This loop runs at
+        import and walks the whole table eagerly, so a missing file used to raise before the
+        socket was ever bound — every tier died, including the passthrough one that reads no
+        preamble at all, and the user saw only "relay failed to start". A packaging slip is the
+        realistic way to get there, and it should cost one tier, not all of them.
+        """
+        if not _rel:
+            return ""
+        try:
+            _b = (_tbase / _rel).read_text(encoding="utf-8")
+        except OSError as _e:
+            _TIER_BROKEN[_tier] = f"{_rel}: {_e.__class__.__name__}"
+            return None
+        if not _b.strip():
+            return ""                                    # empty file = official low
+        return _b if _b.endswith("\n\n") else _b.rstrip("\n") + "\n\n"
+
     for _t in _tt["tiers"]:
-        _pre = (_tbase / _t["file"]).read_text(encoding="utf-8") if _t.get("file") else ""
-        if _pre.strip() and not _pre.endswith("\n\n"):   # byte hygiene, same as single-tier mode
-            _pre = _pre.rstrip("\n") + "\n\n"
-        elif not _pre.strip():
-            _pre = ""                                    # empty preamble = official low
+        _pre = _tier_block(_t.get("file"), _t["name"])
+        # A per-turn reminder the tier mounts itself, so a tier can carry the preamble+reminder
+        # construction without the operator wiring anything by hand.
+        _msg = _tier_block(_t.get("msg_system_file"), _t["name"])
+        # force_model: tiers calibrated against a single model. Running one on another model does
+        # not fail — it quietly returns an uncalibrated result, which is worse — so the tier pins
+        # the model instead of trusting the client.
+        _force = str(_t.get("force_model") or "")
+        if _pre is None or _msg is None:                  # a mounted file was unreadable
+            continue                                      # this tier stays out of the table
         for _n in [_t["name"], *_t.get("aliases", [])]:
             TIERS[_n.lower()] = {"pre": _pre, "tag": _t["name"],
-                                 "pt": bool(_t.get("passthrough"))}
+                                 "pt": bool(_t.get("passthrough")),
+                                 # keep_effort: tiers calibrated riding the client's own effort
+                                 # (Claude Code defaults to high), NOT on the effort=low
+                                 # virtual-tier base — they splice their preamble and leave
+                                 # effort and thinking exactly as the client sent them.
+                                 "keep": bool(_t.get("keep_effort")),
+                                 "msg": _msg,
+                                 "force": _force}
+    for _bn, _why in _TIER_BROKEN.items():
+        print(f"[relay-anthropic] WARN: tier {_bn!r} disabled — {_why}", file=sys.stderr)
     TIER_DEFAULT = str(_tt.get("default", _tt["tiers"][0]["name"])).lower()
+    if TIER_DEFAULT in _TIER_BROKEN:
+        # The default tier itself lost a mounted file. Falling back to the passthrough tier keeps
+        # the session alive on stock upstream behaviour, which is a far better outcome than a
+        # relay that will not start; the warning above already named the cause.
+        _pt = next((n for n, v in TIERS.items() if v["pt"]), None)
+        assert _pt, f"default tier {TIER_DEFAULT!r} is unusable and no passthrough tier exists"
+        print(f"[relay-anthropic] WARN: default tier {TIER_DEFAULT!r} disabled, "
+              f"falling back to {_pt!r}", file=sys.stderr)
+        TIER_DEFAULT = _pt
     assert TIER_DEFAULT in TIERS, f"tiers.json default={TIER_DEFAULT!r} is not in the table"
     # DA_TIER: the session-level default tier (passed in by cct from -e). By design CC is none
     # the wiser: the client sends the real model name and the tier is enforced in the relay
@@ -261,6 +352,13 @@ if TIER_TABLE_FILE:
         TIER_DEFAULT = _env_tier
     for _k, _v in (_tt.get("cc_effort_map") or {}).items():
         _vl = str(_v).lower()
+        if _vl in _TIER_BROKEN:
+            # The mapping target was disabled above. Dropping the entry means that effort word
+            # goes straight through to the official bucket, which is the same thing the table
+            # would do for an unmapped word — a degraded mapping, not a dead relay.
+            print(f"[relay-anthropic] WARN: cc_effort_map[{_k!r}] drops — tier {_vl!r} disabled",
+                  file=sys.stderr)
+            continue
         assert _vl in TIERS, f"cc_effort_map[{_k!r}]={_v!r} is not a name in the tier table"
         if str(_k).lower() not in ("low", "medium", "high", "xhigh", "max"):
             print(f"[relay-anthropic] WARN: cc_effort_map has non-CC keyword {_k!r} (applied anyway)",
@@ -268,11 +366,16 @@ if TIER_TABLE_FILE:
         CC_MAP[str(_k).lower()] = _vl
 
 
-# Final model-channel rules (two of them, after the tier-name channel was cleaned up):
+# Final model-channel rules (three of them, after the tier-name channel was cleaned up):
 #   ① deepseek-v4* → governed by thinking level (session tier DA_TIER), the model name is
 #      **forwarded verbatim** (pro included)
 #   ② everything else (claude-*/gpt-*/tier-name variants/garbage names/empty) → **forwarded
 #      verbatim, zero intervention, zero rejection** — fully transparent
+#   ③ EXCEPT when the session tier declares force_model: that tier pins the model for every
+#      request, ② included. Single-model tiers exist because the arm behind them was only ever
+#      measured on that model — a request escaping to another one does not fail, it silently
+#      returns an uncalibrated result, which is worse. The ledger keeps `asked` (what the client
+#      sent) beside `forced` (what went upstream), so the rewrite is never invisible.
 # From here on the table mode has no policy 400 of any kind; whether a name is right is
 # adjudicated by the upstream, whose own wording is relayed verbatim.
 READ_TIMEOUT = int(os.environ.get("DA_READ_TIMEOUT", "3600"))
@@ -590,10 +693,20 @@ class H(BaseHTTPRequestHandler):
                                           "max_thinking_tokens", "verbosity") if k in body]
         tier = None
         mapped = False
+        forced = None
+        tier_msg = ""
         if TIERS:
             name = str(asked or "").lower()
             t = None
             if name.startswith("deepseek-v4"):     # ① thinking level governs, model name verbatim
+                t = TIERS[TIER_DEFAULT]
+            # ①″ A single-model tier claims the request whatever the client asked for. This is
+            # the one exception to rule ② below, and it is deliberate: such a tier was measured
+            # on one model only, and Claude Code's own background small-model calls go out under
+            # a different name — letting those escape would split one session across two models
+            # and quietly void the calibration. `asked` is kept in the ledger beside `forced`, so
+            # the rewrite is always visible after the fact.
+            elif TIERS[TIER_DEFAULT].get("force"):
                 t = TIERS[TIER_DEFAULT]
             # ①′ CC effort mapping: only passthrough-tier (official) sessions consult the table —
             # pinned-tier sessions do not (the choice of tier belongs to the session); the table
@@ -610,15 +723,22 @@ class H(BaseHTTPRequestHandler):
                 # passthrough tier ("official"): the effort channel is forwarded verbatim too,
                 # the relay does not intervene at all.
                 if not t.get("pt"):                # injection tier: intervene unconditionally
-                    oc = body.get("output_config")
-                    # the client may send a non-dict (attack test measured: a string crashes
-                    # the handler)
-                    oc = dict(oc) if isinstance(oc, dict) else {}
-                    # clear the official base effort — always the virtual-tier construction
-                    oc["effort"] = "low"
-                    body["output_config"] = oc
-                    _thinking_on(body)             # reclaim the thinking switch (see docstring)
+                    if not t.get("keep"):          # keep_effort tiers ride the client's effort
+                        oc = body.get("output_config")
+                        # the client may send a non-dict (attack test measured: a string crashes
+                        # the handler)
+                        oc = dict(oc) if isinstance(oc, dict) else {}
+                        # clear the official base effort — the virtual-tier construction
+                        oc["effort"] = "low"
+                        body["output_config"] = oc
+                        _thinking_on(body)         # reclaim the thinking switch (see docstring)
                     _splice_system(body, t["pre"])
+                    tier_msg = t.get("msg") or ""  # per-turn reminder mounted by the tier
+                # Pin the model last, so it covers passthrough and injection tiers alike.
+                # DA_PIN still wins (explicit operator opt-in, applied further down).
+                if t.get("force") and body.get("model") != t["force"]:
+                    forced = t["force"]
+                    body["model"] = forced
             # ② All other models (tier-name variants included): forwarded verbatim, zero
             # intervention, zero rejection (recorded in the ledger with tier=None)
         # **No change** by default. DA_DENY=1 rejects anything that is not flash loudly; only an
@@ -641,6 +761,9 @@ class H(BaseHTTPRequestHandler):
             body["output_config"] = oc
         if not TIERS:
             _inject_preamble(body)
+        # Independent of the preamble splice: this touches messages, not system, so the two
+        # compose. Runs after the splice so a capture shows both.
+        _insert_tier_reminder(body, tier_msg)
         stream = bool(body.get("stream"))
         _cap("req", {"path": path, "asked_model": asked, "asked_effort": eff_in,
                      "body": body})
@@ -673,6 +796,9 @@ class H(BaseHTTPRequestHandler):
                "status": r.status, "stream": stream,
                "port": PORT, "pre": PREAMBLE_TAG or None, "tier": tier,
                "eff_in": eff_in}
+        if forced:
+            # the session tier pinned the model; `asked` above keeps what the client really sent
+            row["forced"] = forced
         if think_in is not None:
             row["think_in"] = think_in             # the client's original thinking.type
         if _unknown:

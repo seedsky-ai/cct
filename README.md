@@ -55,16 +55,19 @@ Codex, DSH and OpenCode are in closed beta; models like GLM and Kimi are on the 
 Pick a tier at startup (3 seconds of silence takes the default):
 
 ```text
-  1. Flex       3→5 efforts · official low/high/max + our medium & xhigh
-  2. Value      −49% cost · same result, less cost (beta) ★default
-  3. Deeper     +7% depth · deeper than max (beta)
-Choose 1-3 (Enter=default):
+  1. Flex     3→5 efforts · official low/high/max + our medium & xhigh
+  2. Value    −49% cost · same result, less cost (beta) ★default
+  3. Deeper   +7% depth · deeper than max (beta)
+  4. Proven   pro only · steady agentic coding (beta)
+  5. Swift    pro only · shell + editor focus (beta)
+  6. Peak     pro only · reinforced each turn (beta)
+Choose 1-6 (Enter=default):
 ```
 
 Work as usual, then read the receipt on exit:
 
 ```text
-◆ Value · technical preview 0.1.7
+◆ Value · technical preview 0.1.10
   /effort locked for end-to-end tuning — same result, less cost · for free /effort choice, use Flex
 
   ... your Claude Code session ...
@@ -208,7 +211,7 @@ cct claude -p "What is 17*23? Number only."    # one real call end to end
 A healthy run looks like this:
 
 ```text
-◆ Value · technical preview 0.1.7
+◆ Value · technical preview 0.1.10
   /effort locked for end-to-end tuning — same result, less cost · for free /effort choice, use Flex
 391
 ✓ Saved ≈48.6% cost · ≈0s faster
@@ -236,6 +239,53 @@ the gaps between adjacent official steps, and `Deeper` reaches past Max.
 
 Start on **Value** and forget about it. Reach for **Deeper** on the one problem that deserves it.
 `Classic` and `Extra` sit in between and are reachable with `-e` (see [Usage](#usage)).
+
+### The three pro-only tiers
+
+`Proven` / `Swift` / `Peak` come from a different line of work: instead of tuning depth, they
+carry a **register prefix** measured against agentic SWE tasks (SWE-bench-style repos, run to
+completion with a verifier). Three properties set them apart from the tiers above:
+
+- **They pin the model.** Each one answers on `deepseek-v4-pro` whatever `/model` says, because
+  that is the only model they were ever measured on. Both `ANTHROPIC_MODEL` and the relay's
+  model-forwarding enforce it; the ledger keeps what the client asked for beside what was sent.
+- **They leave `/effort` alone.** Unlike the tuned tiers, these splice their prefix and forward
+  your effort untouched — that is the construction they were calibrated in.
+- **They cost pro rates.** Pro is ~3× flash per token. The receipt prices it correctly.
+
+| Tier | What the prefix does | Measured, official API, `deepseek-v4-pro` |
+|---|---|---|
+| **Proven** | telegraph-register preamble | **20 of 29 tasks.** One run per task, so that number has no ambiguity in it |
+| **Swift** | same register, plus it tells the model it has only a shell and a file editor | **7 of 8 tasks** — but the 8 were picked *because arms disagreed on them*, so this is decoration, not evidence |
+| **Peak** | Proven's text, repeated as a per-turn reminder | **18–21 of 30**, depending on which repeat run you count |
+
+**How these compare to running with no prefix at all — read this before believing the table.**
+The honest answer is that the benchmark cannot resolve it. The no-prefix arm was run many times,
+and 8 of its 15 repeated tasks come out differently on a re-run — a ~50% flip rate. So "Proven
+versus no prefix" has no single value; it depends on which of the no-prefix runs you pick:
+
+| Which no-prefix run you compare against | Result | p |
+|---|---|---|
+| its best runs | 20 vs 17 | 0.42 |
+| its first runs | 20 vs 16 | 0.42 |
+| averaging its repeats | 20 vs 13 | 0.09 |
+| its worst runs | 20 vs 10 | 0.01 |
+
+Same data, same 29 tasks, p from 0.01 to 0.42. **Proven leans better than no prefix in every
+one of those slices — it never loses — but the size of the effect is not measurable here, and
+anyone quoting a single p-value for it (including an earlier version of this file, which quoted
+0.09) is quoting an artefact of how they de-duplicated.**
+
+`Peak` against `Proven` is the one comparison that *is* stable: p = 0.75–1.00 under every rule
+above. **The per-turn repetition buys nothing.** It ships for completeness.
+
+Bottom line: prefer **Proven**. Do not read one or two tasks of difference as a real difference.
+
+⚠ **`Swift` narrows the tool surface on purpose.** Its prefix says "you have exactly two tools…
+ignore every other tool… there are no sub-agents, no skills, no task lists". The tools are still
+wired up — Claude Code is unchanged — but the model is being told not to use them, so sub-agents,
+skills and task lists will effectively go unused in that tier. Pick it only if that is what you
+want.
 
 ---
 
@@ -292,12 +342,19 @@ Value and Deeper are currently marked `(beta)`.
 
 ---
 
-## Model channel rules (two of them, there is no third)
+## Model channel rules (three of them, there is no fourth)
 
 1. `deepseek-v4*` → governed by the session tier, **the original model name is passed through** (pro included);
 2. **every other model name** (`claude-*` / `gpt-*` / garbage / empty) → **forwarded verbatim, zero intervention, zero rejection**; right or wrong is adjudicated by the upstream and its own wording is relayed verbatim — the relay never issues a policy 400.
+3. **except in a single-model tier** (`Proven` / `Swift` / `Peak`, i.e. any tier declaring `force_model` in `tiers.json`): that tier rewrites the model to its own, for every request, rule 2 included.
 
 Corollary: if an external tool changes `ANTHROPIC_MODEL` to a name that is not `deepseek-v4*`, those requests are forwarded verbatim and **the tier does not participate**. This does not happen silently: the exit receipt names how many requests bypassed the tier you picked.
+
+Why rule 3 exists: the arms behind those tiers were only ever measured on `deepseek-v4-pro`.
+A request escaping to another model does not fail loudly — it comes back looking fine while being
+uncalibrated, which is worse than an error. So the tier claims the request instead of trusting the
+client. Nothing about this is hidden: every ledger row keeps `asked` (what the client sent) next to
+`forced` (what went upstream), and the session banner states the pin on startup.
 
 ---
 

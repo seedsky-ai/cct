@@ -45,16 +45,19 @@ GLM、Kimi 等其他模型正在路上 —— 见 [路线图](#路线图)。
 启动时选档（3 秒无按键自动确认默认档）：
 
 ```text
-  1. Flex       3→5 efforts · official low/high/max + our medium & xhigh
-  2. Value      −49% cost · same result, less cost (beta) ★default
-  3. Deeper     +7% depth · deeper than max (beta)
-Choose 1-3 (Enter=default):
+  1. Flex     3→5 efforts · official low/high/max + our medium & xhigh
+  2. Value    −49% cost · same result, less cost (beta) ★default
+  3. Deeper   +7% depth · deeper than max (beta)
+  4. Proven   pro only · steady agentic coding (beta)
+  5. Swift    pro only · shell + editor focus (beta)
+  6. Peak     pro only · reinforced each turn (beta)
+Choose 1-6 (Enter=default):
 ```
 
 照常干活，退出时看回执：
 
 ```text
-◆ Value · technical preview 0.1.7
+◆ Value · technical preview 0.1.10
   /effort locked for end-to-end tuning — same result, less cost · for free /effort choice, use Flex
 
   ... 你的 Claude Code 会话 ...
@@ -192,7 +195,7 @@ cct claude -p "17*23=? 只回数字"                 # 一次完整的真实调�
 一次健康的运行长这样：
 
 ```text
-◆ Value · technical preview 0.1.7
+◆ Value · technical preview 0.1.10
   /effort locked for end-to-end tuning — same result, less cost · for free /effort choice, use Flex
 391
 ✓ Saved ≈48.6% cost · ≈0s faster
@@ -217,6 +220,47 @@ cct claude -p "17*23=? 只回数字"                 # 一次完整的真实调�
 | **Deeper** | 一道值得花钱的难题 —— 长链推理、棘手 bug | 更多 token、更慢 |
 
 **默认用 Value 就好，别多想**；遇到真正值得的那道题再上 **Deeper**。`Classic` 与 `Extra` 位于中间，用 `-e` 直达（见 [用法](#用法)）。
+
+### 三个 pro 专属档
+
+`Proven` / `Swift` / `Peak` 出自另一条线：它们调的不是思考深度，而是往系统提示前面拼一段
+**语域前缀**，并且是在**跑到底带验证器的真实仓库任务**（SWE-bench 形态）上量出来的。和上面三档有三点不同：
+
+- **它们钉死模型。** 不管 `/model` 显示什么，这三档一律走 `deepseek-v4-pro` —— 因为它们**只**在
+  这一个模型上被测过。`ANTHROPIC_MODEL` 与中继转发两处同时强制；台账保留客户端原本请求的名字。
+- **它们不动 `/effort`。** 与调档位的那几档不同，这三档只拼前缀、把你的 effort 原样转发 ——
+  这正是它们被标定时的构型。
+- **它们按 pro 计费。** pro 单价约为 flash 的 3 倍,回执会按 pro 价算。
+
+| 档位 | 前缀做什么 | 实测（官方 API，`deepseek-v4-pro`） |
+|---|---|---|
+| **Proven** | 电报体语域前缀 | **29 题解出 20 题。**每题只跑一次，这个数字没有歧义 |
+| **Swift** | 同语域，外加告诉模型"你只有 shell 和文件编辑器" | **8 题解出 7 题** —— 但这 8 题是**按各臂结果不一致挑出来的**，只能当装饰，不能当证据 |
+| **Peak** | Proven 的同一段文本，每轮再重复一次 | **30 题解出 18–21 题**，取决于算哪一次重复运行 |
+
+**和"完全不加前缀"比是多少 —— 看这段再信上面的表。**
+老实的答案是：这个基准分辨不出来。裸面那一臂被反复跑过很多次，**它重复跑过的 15 道题里有 8 道
+重跑会翻盘**（约 50% 翻转率）。所以"Proven 对裸面"根本没有单一数值，取决于你拿裸面的哪一次比：
+
+| 拿裸面的哪一次比 | 结果 | p |
+|---|---|---|
+| 取它最好的那次 | 20 vs 17 | 0.42 |
+| 取它首次 | 20 vs 16 | 0.42 |
+| 把它的重复取平均 | 20 vs 13 | 0.09 |
+| 取它最差的那次 | 20 vs 10 | 0.01 |
+
+同一批数据、同样 29 题，p 从 0.01 到 0.42。**Proven 在上面每一种切法里都占优 —— 它从没输过 ——
+但效应有多大在这里量不出来。任何人拿单个 p 值来说事（包括本文件的早先版本，它写了 0.09）都是在
+引用一个"怎么去重"的产物。**
+
+`Peak` 对 `Proven` 反而是唯一稳定的比较：上面每一种规则下 p 都在 0.75–1.00。**每轮重复什么也没买到**，
+它上架只为完整。
+
+结论：**优先用 Proven**。别把一两道题的差距当成真实差距。
+
+⚠ **`Swift` 是有意收窄工具面的。** 它的前缀写着"你恰好只有两个工具……忽略此提示里描述的其他
+一切工具……没有子 agent、没有 skill、没有任务列表"。工具本身还在（Claude Code 没被改动），
+但模型被告知不要用，所以该档下子 agent / skill / 任务列表实际上会闲置。**明白这一点再选它。**
 
 ---
 
@@ -273,12 +317,18 @@ Value 与 Deeper 目前标 `(beta)`。
 
 ---
 
-## 模型通道规则（就两条，没有第三条）
+## 模型通道规则（三条，没有第四条）
 
 1. `deepseek-v4*` → 受会话档管辖，**模型原名透传**（含 pro）；
 2. **其余一切模型名**（`claude-*` / `gpt-*` / 乱名 / 空）→ **原样转发，零干预零拒绝**；对错由上游裁决并原话透传 —— 中继不会有任何策略性 400。
+3. **单模型档除外**（`Proven` / `Swift` / `Peak`，即 `tiers.json` 里声明了 `force_model` 的档）：该档会把模型改写成自己那一个，**对每一条请求生效，包括第 2 条覆盖的那些**。
 
 推论：如果外部工具把 `ANTHROPIC_MODEL` 改成了非 `deepseek-v4*` 的名字，这些请求会被原样转发，**档位不参与**。但这不是静默发生的：退出回执会点名有多少请求绕过了你选的档。
+
+第 3 条为什么存在：那三个档背后的臂**只**在 `deepseek-v4-pro` 上量过。请求跑到别的模型上不会
+报错 —— 它会**看着正常地返回一个未标定的结果**，这比报错更糟。所以档位直接接管，而不是信任客户端。
+这件事没有任何隐藏：台账每一行都把 `asked`（客户端发的）和 `forced`（实际发上游的）并排记下，
+会话启动横幅也会明说钉了哪个模型。
 
 ---
 

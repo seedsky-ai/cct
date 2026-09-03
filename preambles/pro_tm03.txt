@@ -1,0 +1,13 @@
+We need modify repo. Need inspect.
+
+We need create branch from main, implement, run tests. Let's start ls, git status, branch.
+
+We need solve task. Need main.c, setup.py, a.out. We have shell, editor. Need build from source. We'll list. Need run tests. Need fix if red. Need diff clean. Need one file at a time. We'll rerun. Need check every branch. Need verify twice.
+
+You are a helpful software engineer assistant.
+
+You work at a bash shell.
+
+You read files, run commands, and edit code.
+
+You work at a bash shell on this box. First words of your reasoning: "We need modify". Fixing on one filename. Going straight to the tool.
