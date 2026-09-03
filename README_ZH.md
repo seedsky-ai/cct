@@ -35,7 +35,9 @@
 
 它不是手调出来的。我们从**神经元级机理**去看模型"想"的过程，再用**自进化高通量搜索**批量生成**思考锚点**、逐个上真实基准打分 —— 方法见 [seedsky.ai](https://seedsky.ai)。cct 就是靠控制这些锚点，在官方 low / high / max 之外补上 **medium**（low↔high 之间）与 **xhigh**（high↔max 之间），再开出两个全新的思考区域：**Value** 与 **Deeper**。各档具体落在哪，见 [该选哪个档](#该选哪个档)。
 
-用法就是在你原来的命令前加一个 `cct`：启动时选档，退出时给你一张花费回执。**它只动一样东西：模型想得多深** —— 不修改、不压缩、不留存你的对话内容。
+用法就是在你原来的命令前加一个 `cct`：启动时选档，退出时给你一张花费回执。调档位那几档只动一样东西：**模型想得多深**。三个 pro 专属档另外会在系统提示前面拼一段固定前缀，
+其中 `Peak` 还会每轮加一条固定提醒 —— 细节见[三个 pro 专属档](#三个-pro-专属档)。
+你写的内容在任何档位下都不被改写、不压缩、不留存。
 
 **目前只支持 Claude Code**，Codex、DSH、OpenCode 正在内测；**模型侧目前支持 DeepSeek 系列**，
 GLM、Kimi 等其他模型正在路上 —— 见 [路线图](#路线图)。
@@ -268,7 +270,7 @@ cct claude -p "17*23=? 只回数字"                 # 一次完整的真实调�
 
 ```bash
 cct                       # 等价于 cct claude
-cct claude                # 启动时三选一（3 秒无按键 = 默认档）
+cct claude                # 启动时六选一（3 秒无按键 = 默认档）
 cct -e deeper claude      # 直接指定档位，跳过选择器
 cct claude -p "..."       # 其余参数原样透传给 claude
 cct list                  # 档位表（vs 官方 max 徽标 + 说明）
@@ -283,8 +285,12 @@ cct list                  # 档位表（vs 官方 max 徽标 + 说明）
 | `classic` `medium` `med` | **Classic** | 中间的注入档 |
 | `extra` `xhigh` | **Extra** | 比官方 high 更深 |
 | `deeper` `deep` | **Deeper** | 比官方 max 更深 —— 更贵更慢 |
+| `proven` `tm03` `tripara` | **Proven** | 语域前缀，仅 pro —— 见[三个 pro 专属档](#三个-pro-专属档) |
+| `swift` `qt05` | **Swift** | 同上，外加把工具面收窄到 shell + 编辑器 |
+| `peak` `tm03x5` | **Peak** | 同一段前缀，每轮重复一次 |
 
-选择器只摆三个（Flex · Value · Deeper）；五档全量随时可用 `-e` 直达。
+选择器摆六个（Flex · Value · Deeper · Proven · Swift · Peak）；`Classic` 与 `Extra` 夹在调档位那几档
+中间，只能用 `-e` 直达。八档全量随时可用 `-e`。
 
 ---
 

@@ -318,6 +318,12 @@ if TIER_TABLE_FILE:
         # not fail — it quietly returns an uncalibrated result, which is worse — so the tier pins
         # the model instead of trusting the client.
         _force = str(_t.get("force_model") or "")
+        # force_effort: same argument for the thinking level. A register preamble was searched
+        # with the official effort held at one value, so the pair (preamble, effort) is the thing
+        # that was measured — shipping the preamble at a different effort ships a different arm.
+        # Pinned here as well as in the launcher because the environment variable cannot reach
+        # every caller (the client's own background requests, a relay run standalone).
+        _feff = str(_t.get("force_effort") or "")
         if _pre is None or _msg is None:                  # a mounted file was unreadable
             continue                                      # this tier stays out of the table
         for _n in [_t["name"], *_t.get("aliases", [])]:
@@ -329,7 +335,8 @@ if TIER_TABLE_FILE:
                                  # effort and thinking exactly as the client sent them.
                                  "keep": bool(_t.get("keep_effort")),
                                  "msg": _msg,
-                                 "force": _force}
+                                 "force": _force,
+                                 "feff": _feff}
     for _bn, _why in _TIER_BROKEN.items():
         print(f"[relay-anthropic] WARN: tier {_bn!r} disabled — {_why}", file=sys.stderr)
     TIER_DEFAULT = str(_tt.get("default", _tt["tiers"][0]["name"])).lower()
@@ -694,6 +701,7 @@ class H(BaseHTTPRequestHandler):
         tier = None
         mapped = False
         forced = None
+        eff_forced = None
         tier_msg = ""
         if TIERS:
             name = str(asked or "").lower()
@@ -734,11 +742,19 @@ class H(BaseHTTPRequestHandler):
                         _thinking_on(body)         # reclaim the thinking switch (see docstring)
                     _splice_system(body, t["pre"])
                     tier_msg = t.get("msg") or ""  # per-turn reminder mounted by the tier
-                # Pin the model last, so it covers passthrough and injection tiers alike.
-                # DA_PIN still wins (explicit operator opt-in, applied further down).
+                # Pin model and effort last, so they cover passthrough and injection tiers alike
+                # and land on top of whatever the branches above wrote.
+                # DA_PIN still wins for the model (explicit operator opt-in, applied further down).
                 if t.get("force") and body.get("model") != t["force"]:
                     forced = t["force"]
                     body["model"] = forced
+                if t.get("feff"):
+                    oc = body.get("output_config")
+                    oc = dict(oc) if isinstance(oc, dict) else {}
+                    if oc.get("effort") != t["feff"]:
+                        eff_forced = t["feff"]
+                    oc["effort"] = t["feff"]
+                    body["output_config"] = oc
             # ② All other models (tier-name variants included): forwarded verbatim, zero
             # intervention, zero rejection (recorded in the ledger with tier=None)
         # **No change** by default. DA_DENY=1 rejects anything that is not flash loudly; only an
@@ -799,6 +815,9 @@ class H(BaseHTTPRequestHandler):
         if forced:
             # the session tier pinned the model; `asked` above keeps what the client really sent
             row["forced"] = forced
+        if eff_forced:
+            # the session tier pinned the thinking level; `eff_in` above keeps the client's own
+            row["eff_forced"] = eff_forced
         if think_in is not None:
             row["think_in"] = think_in             # the client's original thinking.type
         if _unknown:

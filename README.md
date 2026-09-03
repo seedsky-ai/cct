@@ -43,8 +43,10 @@ entirely new regions open up — **Value** and **Deeper**. Where each one lands 
 [Which tier should I use?](#which-tier-should-i-use).
 
 Usage is putting `cct` in front of your usual command: pick a tier at startup, get a cost receipt on
-exit. **It changes exactly one thing: how hard the model thinks** — your conversation is never
-rewritten, compressed or stored.
+exit. On the tuned tiers it changes exactly one thing: **how hard the model thinks**. The three pro-only
+tiers additionally prepend a fixed preamble, and one of them (`Peak`) adds a fixed reminder each
+turn — spelled out under [the three pro-only tiers](#the-three-pro-only-tiers). Nothing you write is
+ever rewritten, compressed or stored.
 
 **Supported today: Claude Code** as the harness and **the DeepSeek family** as the model behind it.
 Codex, DSH and OpenCode are in closed beta; models like GLM and Kimi are on the way — see
@@ -293,7 +295,7 @@ want.
 
 ```bash
 cct                       # equivalent to cct claude
-cct claude                # pick one of three at startup (3s without a key press = default tier)
+cct claude                # pick one of six at startup (3s without a key press = default tier)
 cct -e deeper claude      # go straight to a tier, skipping the picker
 cct claude -p "..."       # all other arguments are forwarded verbatim to claude
 cct list                  # tier table (vs official max badge + description)
@@ -308,8 +310,13 @@ Tier selection **only happens at startup** (picker or `-e`). You cannot switch t
 | `classic` `medium` `med` | **Classic** | the middle injection tier |
 | `extra` `xhigh` | **Extra** | deeper than official high |
 | `deeper` `deep` | **Deeper** | deeper than official max — more expensive, slower |
+| `proven` `tm03` `tripara` | **Proven** | register preamble, pro only — see [the three pro-only tiers](#the-three-pro-only-tiers) |
+| `swift` `qt05` | **Swift** | same, with the tool surface narrowed to a shell and an editor |
+| `peak` `tm03x5` | **Peak** | same preamble, repeated every turn |
 
-The picker shows only three (Flex · Value · Deeper); all five tiers are always reachable directly with `-e`.
+The picker shows six (Flex · Value · Deeper · Proven · Swift · Peak); `Classic` and `Extra` sit
+between the tuned tiers and are reachable with `-e` only. All eight are always reachable directly
+with `-e`.
 
 ---
 
@@ -478,8 +485,13 @@ thinking-effort setting. That work is per-agent, which is why they land one at a
 **Does cct see my prompts or my API key?**
 No. The relay forwards the `x-api-key` / `authorization` header your client already sends, untouched;
 cct itself never stores a key. The ledger under `~/.cct/sessions/` holds accounting fields only —
-token counts, cache hits, latency, status codes — never conversation content. What the relay *does*
-rewrite is the thinking-depth part of the request body, and nothing else.
+token counts, cache hits, latency, status codes — never conversation content.
+
+What the relay *does* change, and nothing beyond it: the thinking-depth part of the request body on
+every injection tier; on the three pro-only tiers also the model name and the effort value, both
+pinned to what that tier was calibrated on, and for `Peak` one added reminder message per request.
+Your own messages are passed through untouched in every case; the ledger records what was pinned
+(`forced`, `eff_forced`) beside what your client originally asked for.
 
 **Is the receipt my actual bill?**
 No — it is an estimate computed from the ledger and the price table in `tiers.json`. DeepSeek's own
