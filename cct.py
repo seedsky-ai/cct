@@ -591,6 +591,14 @@ def main(argv: list) -> int:
     _sess_lbl = next((str(t.get("label") or t["name"]) for t in tt["tiers"]
                       if tier.lower() in {str(n).lower()
                                           for n in [t["name"], *t.get("aliases", [])]}), tier)
+    # force_model (2026-09-02): tiers calibrated against a single model pin it on both sides —
+    # here for the model name CC believes it is talking to, and again in the relay when the
+    # request goes upstream. Two layers on purpose: the env var keeps /model and the CC UI
+    # honest, the relay rewrite catches anything the env var cannot reach (CC's background
+    # small-model calls, or a user who overrides ANTHROPIC_MODEL themselves).
+    _sess_model = next((str(t["force_model"]) for t in tt["tiers"]
+                        if t.get("force_model") and tier.lower() in
+                        {str(n).lower() for n in [t["name"], *t.get("aliases", [])]}), FLASH)
 
     # The global-export footgun warning has been removed: connecting directly through an
     # environment variable is a deliberate user configuration, and repeating the warning is
@@ -703,10 +711,21 @@ def main(argv: list) -> int:
                 _why = re.sub(r"\s*\([^)]*\)\s*$", "", str(_ent.get("desc", ""))).strip(" ·")
                 _pt = next((str(e.get("label") or e["name"]) for e in tt["tiers"]
                             if e.get("passthrough")), None)
-                _hint = f" · for free /effort choice, use {_pt}" if _pt else ""
-                print(f"  /effort locked for end-to-end tuning — {_why or 'this tier'}{_hint}")
+                if _ent.get("keep_effort"):
+                    # keep_effort tiers splice the preamble but never touch output_config, so the
+                    # client's own /effort is what goes upstream — saying "locked" here would be
+                    # a plain falsehood. (Applies to the anchored tiers: cc, proven, swift, peak.)
+                    print(f"  /effort forwarded as you set it — {_why or 'this tier'}")
+                else:
+                    _hint = f" · for free /effort choice, use {_pt}" if _pt else ""
+                    print(f"  /effort locked for end-to-end tuning — {_why or 'this tier'}{_hint}")
+            if _ent.get("force_model"):
+                # Say it out loud: this tier answers on one model whatever /model shows, because
+                # that is the only model it was measured on.
+                print(f"  model pinned to {_ent['force_model']} — this tier is calibrated "
+                      f"on it alone")
         else:
-            print(f"◆ tier={tier} · model={FLASH} · relay=127.0.0.1:{port}")
+            print(f"◆ tier={tier} · model={_sess_model} · relay=127.0.0.1:{port}")
 
         # NO_PROXY must include localhost: a machine-wide HTTP(S)_PROXY sends API traffic aimed
         # at 127.0.0.1 through the proxy and it 502s (curl ignores upper-case HTTP_PROXY so the
@@ -714,7 +733,7 @@ def main(argv: list) -> int:
         # By design CC is none the wiser: CC sees the real model name, and the tier is applied by
         # the relay layer from the session config (DA_TIER).
         cenv = dict(os.environ)
-        cenv.update(ANTHROPIC_BASE_URL=f"http://127.0.0.1:{port}", ANTHROPIC_MODEL=FLASH)
+        cenv.update(ANTHROPIC_BASE_URL=f"http://127.0.0.1:{port}", ANTHROPIC_MODEL=_sess_model)
         # Zero intervention on the context window (0.1.6 injected 1M, 0.1.7 reverted it): CC
         # does its own auto-compact against the 200k assumption; users who want the full 1M set
         # CLAUDE_CODE_MAX_CONTEXT_TOKENS themselves.

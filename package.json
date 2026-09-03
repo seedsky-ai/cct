@@ -1,6 +1,6 @@
 {
   "name": "@seedsky/cct",
-  "version": "0.1.7",
+  "version": "0.1.10",
   "description": "Thinking-tier launcher for Claude Code on DeepSeek: pick Flex/Value/Deeper at startup, transparent relay, per-session ledger and a cost-saving receipt on exit.",
   "bin": {
     "cct": "cct.js"
@@ -13,10 +13,7 @@
     "relay_anthropic.py",
     "keystore.py",
     "tiers.json",
-    "preambles/tb_t2_two_answered.txt",
-    "preambles/tb_t1_medium.txt",
-    "preambles/fx_mid_vhigh.txt",
-    "preambles/fx_esc_wb.txt",
+    "preambles/",
     "README.md",
     "LICENSE"
   ],

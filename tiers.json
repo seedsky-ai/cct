@@ -6,7 +6,10 @@
  "picker_order": [
   "official",
   "balance",
-  "deep"
+  "deep",
+  "proven",
+  "swift",
+  "peak"
  ],
  "picker_countdown_s": 3,
  "cc_effort_map": {
@@ -119,6 +122,41 @@
    ],
    "desc": "deeper than max (beta)",
    "out_per_turn": 2382
+  },
+  {
+   "name": "proven",
+   "label": "Proven",
+   "file": "preambles/pro_tm03.txt",
+   "keep_effort": true,
+   "force_model": "deepseek-v4-pro",
+   "aliases": [
+    "tm03",
+    "tripara"
+   ],
+   "desc": "pro only · steady agentic coding (beta)"
+  },
+  {
+   "name": "swift",
+   "label": "Swift",
+   "file": "preambles/pro_qt05.txt",
+   "keep_effort": true,
+   "force_model": "deepseek-v4-pro",
+   "aliases": [
+    "qt05"
+   ],
+   "desc": "pro only · shell + editor focus (beta)"
+  },
+  {
+   "name": "peak",
+   "label": "Peak",
+   "file": "preambles/pro_tm03.txt",
+   "msg_system_file": "preambles/pro_tm03.txt",
+   "keep_effort": true,
+   "force_model": "deepseek-v4-pro",
+   "aliases": [
+    "tm03x5"
+   ],
+   "desc": "pro only · reinforced each turn (beta)"
   }
  ],
  "picker_default_mark": "*"
