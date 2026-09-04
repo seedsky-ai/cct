@@ -11,6 +11,28 @@ This file records **user-visible changes** only: what capability was added, what
 
 ---
 
+## 0.1.11 — 2026-09-04 · A stray `DA_EFFORT` can no longer unpin a tier
+
+- **Fixed: `DA_EFFORT` exported in your shell silently overrode a tier's pinned thinking level, and
+  nothing recorded it.** The pro tiers are calibrated as a *(preamble, effort)* pair — the preamble
+  was searched at one level and has no measurement at any other — so `force_effort` pins the level.
+  A `DA_EFFORT` in the environment used to rewrite it afterwards, and because the ledger's
+  `eff_forced` marker is decided at the pin and was not recomputed, **two sessions differing only in
+  `DA_EFFORT` produced row-for-row identical ledgers** while the wire carried different levels. The
+  variable is now ignored in tier-table mode, matching `DA_PREAMBLE_FILE` and what the README
+  already documented. Standalone (no tier table) use of `DA_EFFORT` is unchanged. `DA_PIN` keeps its
+  precedence over `force_model`: it leaves `pinned` and `used` in the ledger, so it stays auditable.
+- **`Peak`'s description was wrong.** It read *"reinforced each turn"*, which describes a per-turn
+  tail injection this build does not implement. What `msg_system_file` actually does is mount one
+  reminder right after the first user message and keep it at that fixed index — so the text is
+  **stated twice up front**, not restated near each generation point. In the sessions this tier
+  reproduces, that block has a median of 133 messages after it and is the last message in only 11%
+  of requests. Reworded in the picker, `tiers.json` and both READMEs. No behaviour change.
+- **No change to what the model sees.** Verified by replaying one real Claude Code request through
+  all eight tiers on both builds: the outgoing body is byte-identical in 8/8.
+
+---
+
 ## 0.1.10 — 2026-09-03 · Three pro-only register tiers: Proven / Swift / Peak
 
 - **Picker goes from three tiers to six.** `Proven` / `Swift` / `Peak` join `Flex` / `Value` / `Deeper`.

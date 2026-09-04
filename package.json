@@ -1,6 +1,6 @@
 {
   "name": "@seedsky/cct",
-  "version": "0.1.10",
+  "version": "0.1.11",
   "description": "Thinking-tier launcher for Claude Code on DeepSeek: pick Flex/Value/Deeper at startup, transparent relay, per-session ledger and a cost-saving receipt on exit.",
   "bin": {
     "cct": "cct.js"
