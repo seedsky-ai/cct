@@ -62,7 +62,7 @@ Pick a tier at startup (3 seconds of silence takes the default):
   3. Deeper   +7% depth · deeper than max (beta)
   4. Proven   pro only · steady agentic coding (beta)
   5. Swift    pro only · shell + editor focus (beta)
-  6. Peak     pro only · reinforced each turn (beta)
+  6. Peak     pro only · stated twice up front (beta)
 Choose 1-6 (Enter=default):
 ```
 
@@ -312,7 +312,7 @@ Tier selection **only happens at startup** (picker or `-e`). You cannot switch t
 | `deeper` `deep` | **Deeper** | deeper than official max — more expensive, slower |
 | `proven` `tm03` `tripara` | **Proven** | register preamble, pro only — see [the three pro-only tiers](#the-three-pro-only-tiers) |
 | `swift` `qt05` | **Swift** | same, with the tool surface narrowed to a shell and an editor |
-| `peak` `tm03x5` | **Peak** | same preamble, repeated every turn |
+| `peak` `tm03x5` | **Peak** | same preamble, also as a reminder after the first message |
 
 The picker shows six (Flex · Value · Deeper · Proven · Swift · Peak); `Classic` and `Extra` sit
 between the tuned tiers and are reachable with `-e` only. All eight are always reachable directly
