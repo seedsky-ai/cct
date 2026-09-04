@@ -52,7 +52,7 @@ GLM、Kimi 等其他模型正在路上 —— 见 [路线图](#路线图)。
   3. Deeper   +7% depth · deeper than max (beta)
   4. Proven   pro only · steady agentic coding (beta)
   5. Swift    pro only · shell + editor focus (beta)
-  6. Peak     pro only · reinforced each turn (beta)
+  6. Peak     pro only · stated twice up front (beta)
 Choose 1-6 (Enter=default):
 ```
 

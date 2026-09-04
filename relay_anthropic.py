@@ -793,7 +793,14 @@ class H(BaseHTTPRequestHandler):
             return
         if PIN:
             body["model"] = PIN
-        if EFFORT:
+        # Gated on `not TIERS` for the same reason as the preamble splice below: a tier is a
+        # calibrated (preamble, effort) pair, and DA_EFFORT rewriting the effort here — after the
+        # tier pin at the top of this handler — would ship the payload at a depth it was never
+        # searched at. Worse, `eff_forced` is decided at the tier pin and is NOT recomputed here,
+        # so the ledger would keep asserting the tier's effort while the wire carried DA_EFFORT's;
+        # two such runs were measured row-for-row identical in the ledger. README already
+        # documents DA_EFFORT as mutually exclusive with tier-table mode; this enforces it.
+        if EFFORT and not TIERS:
             oc = body.get("output_config")
             # the client may send a non-dict (attack test measured: a string crashes the handler)
             oc = dict(oc) if isinstance(oc, dict) else {}
