@@ -251,6 +251,15 @@ completion with a verifier). Three properties set them apart from the tiers abov
 - **They pin the model.** Each one answers on `deepseek-v4-pro` whatever `/model` says, because
   that is the only model they were ever measured on. Both `ANTHROPIC_MODEL` and the relay's
   model-forwarding enforce it; the ledger keeps what the client asked for beside what was sent.
+  **Keep the two in agreement**: if Claude Code runs under any other name (a `settings.json`
+  `env.ANTHROPIC_MODEL`, a `--model`, a `/model` switch mid-session) the relay still answers on
+  pro, but Claude Code up to 2.1.219 then drops its own thinking from the replayed history — the
+  session runs without its reasoning and the numbers below no longer apply. Under these three
+  tiers `cct` therefore pins the name everywhere it can reach — `--model` on the command line,
+  `ANTHROPIC_MODEL` in the environment and in the `--settings` pin file, and every model slot
+  (so a `/model` pick of opus/sonnet/haiku stays on pro); a `--model` of your own is overridden
+  and said so. The relay warns in `relay.log` the moment a multi-turn request still arrives
+  under another name, and the receipt counts those requests.
 - **They leave `/effort` alone.** Unlike the tuned tiers, these splice their prefix and forward
   your effort untouched — that is the construction they were calibrated in.
 - **They cost pro rates.** Pro is ~3× flash per token. The receipt prices it correctly.
@@ -362,6 +371,15 @@ A request escaping to another model does not fail loudly — it comes back looki
 uncalibrated, which is worse than an error. So the tier claims the request instead of trusting the
 client. Nothing about this is hidden: every ledger row keeps `asked` (what the client sent) next to
 `forced` (what went upstream), and the session banner states the pin on startup.
+
+What rule 3 cannot do is fix the client. Claude Code decides what to replay from its own
+transcript, and up to 2.1.219 it drops every `thinking` block of the history when the model name
+it runs under differs from the `model` in the responses (2.1.258 no longer does). Under a
+single-model tier that means: **the name Claude Code is launched with must equal the tier's
+`force_model`**. `cct` sets `ANTHROPIC_MODEL` accordingly; anything that overrides it — a
+`settings.json` `env` block, a `--model`, a `/model` switch — puts the session in a state where the
+relay's rewrite still lands on pro while the model works without its earlier reasoning. The relay
+prints one `WARN` line per offending name to `relay.log` as soon as a multi-turn request shows it.
 
 ---
 

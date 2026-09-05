@@ -11,6 +11,54 @@ This file records **user-visible changes** only: what capability was added, what
 
 ---
 
+## 0.1.12 — 2026-09-04 · The client's model name must equal a single-model tier's `force_model`
+
+- **Documented a client-side failure the relay cannot repair.** Claude Code up to 2.1.219 drops
+  every `thinking` block from the replayed history as soon as the model name it runs under differs
+  from the `model` in the responses (measured against a local stub with the 2.1.219 binary: asked
+  `deepseek-v4-flash` / answered `deepseek-v4-pro` → 0 of 1 thinking blocks replayed, asked pro →
+  1 of 1; 2.1.258 replays in both cases). Under `Proven` / `Swift` / `Peak` the relay's rewrite
+  still lands on pro, so nothing errors — the session simply runs without its own reasoning, and
+  the tier numbers no longer apply (a 15-session verification run launched under the wrong name
+  scored 3/8 where the same arms had scored 20/30). `cct` already exports
+  `ANTHROPIC_MODEL=<force_model>`; what defeats it is a `settings.json` `env.ANTHROPIC_MODEL`
+  (settings env outranks the process environment), a `--model`, or a `/model` switch mid-session.
+  Both READMEs now say so under the pro tiers and under rule 3.
+- **The three single-model tiers now pin the name on every rung `cct` can reach.** Claude Code's
+  model-name precedence, measured on 2.1.219 and 2.1.258, is `--model` > settings `env` (the
+  `--settings` layer above `~/.claude/settings.json`) > process environment > settings `"model"`;
+  the export alone held only the third rung. Under `Proven` / `Swift` / `Peak`, `cct` now also
+  (1) puts `--model <force_model>` on the claude command line, ahead of any subcommand; (2) writes
+  `ANTHROPIC_MODEL` into the existing `--settings` pin file next to `ANTHROPIC_BASE_URL`; and
+  (3) points the model slots (`ANTHROPIC_DEFAULT_OPUS/SONNET/HAIKU_MODEL`,
+  `ANTHROPIC_SMALL_FAST_MODEL`, `CLAUDE_CODE_SUBAGENT_MODEL`) at the pin, so a `/model` pick of
+  opus/sonnet/haiku stays on it and sub-agents go out under it. A `--model` you pass yourself is
+  overridden and said so (`⚠ --model X overridden — Proven answers on deepseek-v4-pro only`).
+  What remains reachable is a name typed into `/model` mid-session. **Nothing changes for `Flex` /
+  `Value` / `Classic` / `Extra` / `Deeper`**: verified by launching every tier through both
+  builds against a stub `claude` — argv, environment and pin file are byte-identical for the five,
+  and differ for the three exactly as listed.
+- **The relay warns and the receipt counts when it happens anyway.** In a `force_model` tier, the
+  first multi-turn request that arrives under another model name prints one `WARN` line to stderr
+  (`relay.log` under `cct`), naming the tier, the pin and the offending name; every such row gets
+  `forced_multi: true` in the ledger, and the exit receipt prints
+  `◆ N multi-turn request(s) arrived as '…' under Proven, pinned to deepseek-v4-pro — …`.
+  One-shot background calls are exempt from both — they replay nothing and are exactly what the
+  rewrite is for. `asked` / `forced` keep recording the rewrite as before.
+- **Verified in containers against the official API, Claude Code 2.1.219.** (1) Harness: the
+  packaged relay on the host, CC in the task container, one SWE task per tier at a smoke timeout —
+  `Proven` / `Swift` / `Peak` launched under the pinned name: every ledger row `asked == used ==
+  deepseek-v4-pro`, no rewrite, thinking replayed on 1430/1430, 1595/1595 and 1952/1952 assistant
+  turns; a fourth leg launched as `deepseek-v4-flash` on purpose: 0/1710 replayed, 58 rows marked
+  `forced_multi`, one relay `WARN`, and the receipt line above printed with the count. (2) Launcher:
+  `npm i -g` of this tarball inside the same image, real `cct -e … claude -p` sessions — a hostile
+  `~/.claude/settings.json` (`env.ANTHROPIC_MODEL=deepseek-v4-flash` + `"model"`) no longer moves
+  the session off pro (0.1.11 under the same file: asked flash, every row rewritten, no thinking
+  replayed); a user `--model deepseek-v4-flash` is overridden with the note; `Value` is byte-for-byte
+  the previous behaviour (flash, no `--model`, pin file unchanged).
+
+---
+
 ## 0.1.11 — 2026-09-04 · A stray `DA_EFFORT` can no longer unpin a tier
 
 - **Fixed: `DA_EFFORT` exported in your shell silently overrode a tier's pinned thinking level, and
