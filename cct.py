@@ -441,6 +441,21 @@ def receipt(ledger: str, sess_label: str = "") -> None:
         _top, _more = _bm.most_common(1)[0][0], len(_bm) - 1
         print(f"◆ {len(_byp)} request(s) bypassed {sess_label} — model {_top!r}"
               f"{f' (+{_more} more)' if _more else ''} is not governed by tiers")
+    # ── Single-model tier, wrong client name: multi-turn requests that arrived under another
+    # model name were rewritten to the pin (fine, audited) — but Claude Code ≤2.1.219 replays no
+    # thinking in that state (relay _warn_model_mismatch), so the session ran without its own
+    # reasoning. Name the offender so the launch can be fixed (a settings.json env block, a
+    # --model, a /model switch). One-shot background rewrites are not in this count.
+    _fm = [r for r in ok_rows if r.get("forced_multi")]
+    if _fm:
+        _fn = collections.Counter(str(r.get("asked")) for r in _fm)
+        _top, _more = _fn.most_common(1)[0][0], len(_fn) - 1
+        _ft = next((labels.get(r["tier"], r["tier"]) for r in _fm if r.get("tier")),
+                   sess_label or "this tier")
+        print(f"◆ {len(_fm)} multi-turn request(s) arrived as {_top!r}"
+              f"{f' (+{_more} more)' if _more else ''} under {_ft}, pinned to "
+              f"{_fm[0].get('forced')} — Claude Code ≤2.1.219 replays no thinking in that "
+              f"state; launch it under the pinned name and do not switch /model")
     if pinned_ign:
         # the third line uses the same opening as the banner + all English
         _lk = next((k for k, _ in tiers.most_common() if k not in pts), None)
@@ -534,6 +549,31 @@ def _inject_settings(cmd: list, pin: str, penv: dict):
     out = list(cmd)
     out[idx] = "--settings=" + pin if out[idx].startswith("--settings=") else pin
     return out, True
+
+
+def _pin_model(cmd: list, model: str, label: str = "") -> list:
+    """Single-model tier: put --model <pin> on claude's command line — the top rung of Claude
+    Code's model-name precedence (measured on 2.1.219 and 2.1.258: it outranks a settings env
+    block, the process environment and a settings "model"). Placed right after the executable,
+    before any subcommand: `claude --model X mcp list` is accepted, `claude mcp list --model X`
+    is rejected (measured). A --model the user passed is dropped and said so — with two flags
+    the last one wins anyway (measured), but overriding silently would hide the fact."""
+    out, skip, theirs = [cmd[0]], False, []
+    for a in cmd[1:]:
+        if skip:
+            theirs.append(a)
+            skip = False
+            continue
+        if a == "--model":
+            skip = True
+            continue
+        if a.startswith("--model="):
+            theirs.append(a.split("=", 1)[1])
+            continue
+        out.append(a)
+    if any(t != model for t in theirs):
+        print(f"⚠ --model {theirs[-1]} overridden — {label or 'this tier'} answers on {model} only")
+    return [out[0], "--model", model, *out[1:]]
 
 
 def _pick_tier(argv: list) -> tuple:
@@ -760,19 +800,45 @@ def main(argv: list) -> int:
         #   cenv.update(ANTHROPIC_DEFAULT_OPUS_MODEL=FLASH, ANTHROPIC_DEFAULT_SONNET_MODEL=FLASH,
         #               ANTHROPIC_DEFAULT_HAIKU_MODEL=FLASH, ANTHROPIC_SMALL_FAST_MODEL=FLASH,
         #               CLAUDE_CODE_SUBAGENT_MODEL=FLASH)
+        #
+        # ── Single-model tiers (tiers.json force_model) are the one exception, and only they ──
+        # The name Claude Code runs under must equal the model the relay answers with: up to
+        # 2.1.219 it drops every thinking block from the replayed history the moment the two
+        # differ (measured against a stub with that binary — asked flash / answered pro → 0 of 1
+        # replayed, asked pro → 1 of 1; 2.1.258 no longer does), and a session in that state
+        # runs without its own reasoning while nothing errors. The env export above only holds
+        # the lowest rung of CC's model-name precedence (measured, both versions):
+        #     --model flag  >  settings env.ANTHROPIC_MODEL (--settings > ~/.claude)  >
+        #     process env  >  settings "model"
+        # so a force_model tier takes the rungs it can reach: every model slot resolves to the
+        # pin here (a /model pick of opus/sonnet/haiku then stays on the pin, and sub-agents /
+        # background calls go out under it — the relay would rewrite them anyway), the pin file
+        # below carries ANTHROPIC_MODEL, and the claude branch adds --model. Passthrough and
+        # depth-tuned tiers are untouched: nothing here runs for them.
+        _force = str(_ent.get("force_model") or "") if _ent else ""
+        if _force:
+            cenv.update(ANTHROPIC_MODEL=_force,
+                        ANTHROPIC_DEFAULT_OPUS_MODEL=_force, ANTHROPIC_DEFAULT_SONNET_MODEL=_force,
+                        ANTHROPIC_DEFAULT_HAIKU_MODEL=_force, ANTHROPIC_SMALL_FAST_MODEL=_force,
+                        CLAUDE_CODE_SUBAGENT_MODEL=_force)
 
         # ── settings.json hijack guard (0.1.5): at startup CC writes settings.json's env back
         # into the process environment, clobbering the BASE_URL injected via cenv above
         # (measured: zero relay traffic, the tier idling).
         # The CLI --settings layer outranks user/project settings and env is merged key by key
         # across layers (measured: with a single-key file, settings' AUTH_TOKEN survives as
-        # usual) → pin the single key ANTHROPIC_BASE_URL only (MODEL is not pinned, the same
-        # path as not overriding the model slots), with zero changes to the user's settings on
-        # disk.
+        # usual) → pin the single key ANTHROPIC_BASE_URL (MODEL joins it only under a
+        # single-model tier, see below), with zero changes to the user's settings on disk.
         # The effort environment layer: it takes effect for **any** wrapped command (not just
         # claude) — writing it inside the claude-only branch would make behaviour inconsistent
         # when wrapping bash/python, which is extremely easy to misjudge while debugging.
         _penv = {"ANTHROPIC_BASE_URL": f"http://127.0.0.1:{port}"}
+        if _force:
+            # Single-model tier: the pin file carries the model name too. The --settings layer
+            # outranks a ~/.claude/settings.json env block — the one thing that clobbers the
+            # cenv export (measured) — and Claude Code writes settings env back into its own
+            # environment, so its hooks and Bash children inherit the pin as well.
+            _penv["ANTHROPIC_MODEL"] = _force
         if _ent and _ent.get("passthrough"):
             # Flex unlocks /effort: a leftover CLAUDE_CODE_EFFORT_LEVEL outranks the /effort
             # menu inside CC and would silently lock down the "/effort live" promise. Strip both
@@ -806,11 +872,17 @@ def main(argv: list) -> int:
         if os.path.basename(cmd[0]).lower().split(".")[0] == "claude":
             _pin = os.path.join(SESS_DIR, f"{ts}_p{port}.settings.json")
             cmd, _pin_ok = _inject_settings(cmd, _pin, _penv)
+            if _force:
+                # Single-model tier: the top rung as well. Env + pin file + --model together
+                # leave only an in-session /model switch to a typed name, which the relay
+                # reports (relay.log) and the receipt counts.
+                cmd = _pin_model(cmd, _force, _sess_lbl)
             # When to speak up: a successful pin-back is completely silent (the success path
-            # does not even read settings); ANTHROPIC_MODEL is neither pinned nor checked nor
-            # warned about. The only place we speak up = the pin-back failed AND settings really
-            # is hijacking — that is a guaranteed bypass (no tier / no ledger / no pricing), so
-            # it must be loud.
+            # does not even read settings); ANTHROPIC_MODEL is pinned only by a single-model
+            # tier and never checked here (the relay warns when a multi-turn request arrives
+            # under another name). The only place we speak up = the pin-back failed AND
+            # settings really is hijacking — that is a guaranteed bypass (no tier / no ledger /
+            # no pricing), so it must be loud.
             if not _pin_ok:
                 for _sp in (os.path.join(os.path.expanduser("~"), ".claude", "settings.json"),
                             os.path.join(os.getcwd(), ".claude", "settings.json"),

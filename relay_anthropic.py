@@ -211,6 +211,41 @@ def _insert_tier_reminder(body: dict, text: str) -> None:
         ms.insert(at, blk)
 
 
+_MISMATCH_WARNED = set()                       # client model names already warned about
+
+
+def _warn_model_mismatch(asked, forced: str, tag: str, body: dict) -> bool:
+    """A force_model tier just rewrote a request whose client runs under another model name.
+    Returns True when that request carries history (a multi-turn request) — the caller marks the
+    ledger row with it, so the receipt can count these without confusing them with the one-shot
+    background calls the rewrite exists for.
+
+    The rewrite itself is harmless and audited (`asked` beside `forced` in the ledger). The damage
+    is on the client side and this relay cannot undo it: Claude Code up to 2.1.219 drops every
+    `thinking` block from the replayed history as soon as the name it was launched with differs
+    from the `model` field in the responses (measured with the 2.1.219 binary against a stub:
+    asked flash / answered pro → 0 of 1 thinking blocks replayed; asked pro → 1 of 1; 2.1.258 no
+    longer does this). A session in that state runs without its own reasoning, and on the tasks
+    the pro tiers were measured on the score collapsed (20/30 → 3/8, 2026-09-04).
+
+    Only multi-turn requests are worth a warning — one-shot background calls replay nothing.
+    Warned once per client model name, so relay.log gets a line, not one per turn.
+    """
+    ms = body.get("messages")
+    if not isinstance(ms, list) or not any(
+            isinstance(m, dict) and m.get("role") == "assistant" for m in ms):
+        return False
+    key = str(asked)
+    if key not in _MISMATCH_WARNED:
+        _MISMATCH_WARNED.add(key)
+        print(f"[relay-anthropic] WARN: tier {tag!r} pins {forced} but the client asked {key!r} "
+              f"on a multi-turn request — Claude Code ≤2.1.219 drops its own thinking from the "
+              f"replayed history when the name it runs under differs from the model in the "
+              f"responses. Launch it with ANTHROPIC_MODEL={forced} / --model {forced} (cct sets "
+              f"both), and do not switch /model inside this tier.", file=sys.stderr)
+    return True
+
+
 def _thinking_on(body: dict) -> None:
     """Reclaim the "thinking switch" on injection tiers (0.1.6).
 
@@ -725,6 +760,7 @@ class H(BaseHTTPRequestHandler):
         tier = None
         mapped = False
         forced = None
+        forced_multi = False                   # force_model rewrite hit a multi-turn request
         eff_forced = None
         tier_msg = ""
         if TIERS:
@@ -772,6 +808,7 @@ class H(BaseHTTPRequestHandler):
                 if t.get("force") and body.get("model") != t["force"]:
                     forced = t["force"]
                     body["model"] = forced
+                    forced_multi = _warn_model_mismatch(asked, forced, t["tag"], body)
                 if t.get("feff"):
                     oc = body.get("output_config")
                     oc = dict(oc) if isinstance(oc, dict) else {}
@@ -846,6 +883,11 @@ class H(BaseHTTPRequestHandler):
         if forced:
             # the session tier pinned the model; `asked` above keeps what the client really sent
             row["forced"] = forced
+        if forced_multi:
+            # ...and the client was replaying history under that other name — the case where
+            # Claude Code ≤2.1.219 drops its thinking (see _warn_model_mismatch); the receipt
+            # counts these rows, one-shot background rewrites stay uncounted
+            row["forced_multi"] = True
         if eff_forced:
             # the session tier pinned the thinking level; `eff_in` above keeps the client's own
             row["eff_forced"] = eff_forced
