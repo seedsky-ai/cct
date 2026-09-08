@@ -49,10 +49,13 @@
 > 之间,有一个**可测量的距离**。然后用**自进化算法**一代一代把这个距离压下去,每一代都由上一代被推翻的
 > 结论生出来。**最后发布的这段前缀,是模型自己的内部机理投票选出来的。**
 >
-> 这把尺基于 [**JAR —— Jacobian Axis Readout**](https://cckfdu.com/jar/)([arXiv:2608.17638](https://arxiv.org/abs/2608.17638)),该工作把一个
-> 可解释的推理状态读数与模型自身的内部机理耦合起来。JAR 读的是**单个模型回答单个问题**;**我们做的新事情是
-> 把它带进 agent 场景**——对象从一次回答变成一整段会话、从一个问题变成一整套 harness——并把回路闭上:
-> 这把尺不只是解释一段前缀,而是用来选出下一段。
+> 这件事能成立,靠的是两项在先的工作。[**JAR —— Jacobian Axis Readout**](https://cckfdu.com/jar/)
+> ([arXiv:2608.17638](https://arxiv.org/abs/2608.17638))把一个可解释的推理状态读数与模型自身的内部机理
+> 耦合起来,它是这把尺的**仪器**;[**RAD —— Routing Agreement Decoding**](https://cckfdu.com/rad/)
+> ([arXiv:2606.22798](https://arxiv.org/abs/2606.22798))是这个想法的**来源**——它指出同一个 token 背后
+> 可以是不同的内部状态,而这种差异不是噪声,是可以用来控制推理的信号。两者读的都是**单个模型回答单个问题**;
+> **我们做的新事情是把它们带进 agent 场景**——对象从一次回答变成一整段会话、从一个问题变成一整套 harness
+> ——并把回路闭上:这把尺不只是解释一段前缀,而是用来选出下一段。
 >
 > **以及我们没有做什么——这才是关键。** 把 DeepSeek 接到 Claude Code 后面的那些代理
 > ([UniClaudeProxy](https://github.com/vibheksoni/UniClaudeProxy)、
@@ -654,7 +657,7 @@ ANTHROPIC_BASE_URL=http://127.0.0.1:8301 ANTHROPIC_MODEL=deepseek-v4-flash \
 
 ## 引用
 
-本工作所基于的可解释性读数:
+本工作基于两篇论文——一个可解释的推理状态读数,以及"模型内部状态本身携带可用于控制推理的信号"这一发现:
 
 ```bibtex
 @misc{chen2026jar,
@@ -670,7 +673,22 @@ ANTHROPIC_BASE_URL=http://127.0.0.1:8301 ANTHROPIC_MODEL=deepseek-v4-flash \
 }
 ```
 
-项目主页: <https://cckfdu.com/jar/>
+```bibtex
+@article{chen2026rad,
+  title   = {Does the Same Token Mean the Same State?
+             MoE Routing as Signal for Reasoning Control},
+  author  = {Chen, Kang and Yu, Mingshen and Nian, Junjie and
+             Wang, Yaoning and Cao, Yixin and Jiang, Yugang},
+  year    = {2026},
+  eprint  = {2606.22798},
+  archivePrefix = {arXiv},
+  primaryClass = {cs.CL},
+  note    = {Routing Agreement Decoding (RAD)},
+  url     = {https://arxiv.org/abs/2606.22798},
+}
+```
+
+项目主页: <https://cckfdu.com/jar/> · <https://cckfdu.com/rad/>
 
 ---
 

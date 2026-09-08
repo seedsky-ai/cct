@@ -52,11 +52,15 @@
 > after generation, each one proposed from what the last one ruled out. **The prefix that shipped is
 > the one the model's own internals voted for.**
 >
-> The readout we build on is [**JAR — Jacobian Axis Readout**](https://cckfdu.com/jar/) ([arXiv:2608.17638](https://arxiv.org/abs/2608.17638)),
-> which couples an interpretable reasoning-state readout to a model's own internals. JAR reads a
-> single model answering a single prompt; **what is new here is carrying it into the agent setting** —
-> a whole session rather than one answer, a harness rather than a question — and closing the loop, so
-> the readout does not only explain a prefix, it selects the next one.
+> Two pieces of prior work make this possible. [**JAR — Jacobian Axis Readout**](https://cckfdu.com/jar/)
+> ([arXiv:2608.17638](https://arxiv.org/abs/2608.17638)) couples an interpretable reasoning-state
+> readout to a model's own internals: it is the instrument. [**RAD — Routing Agreement
+> Decoding**](https://cckfdu.com/rad/) ([arXiv:2606.22798](https://arxiv.org/abs/2606.22798)) is
+> where the idea comes from — it shows that the same token can stand for different internal states,
+> and that the difference is a usable control signal for reasoning rather than noise. Both read a
+> single model answering a single prompt. **What is new here is carrying them into the agent
+> setting** — a whole session rather than one answer, a harness rather than a question — and closing
+> the loop, so the readout does not only explain a prefix, it selects the next one.
 >
 > **What we did not do — and this is the part that matters.** The proxies that put DeepSeek behind
 > Claude Code ([UniClaudeProxy](https://github.com/vibheksoni/UniClaudeProxy),
@@ -730,7 +734,8 @@ join over QQ instead, or email <hello@seedsky.ai> and we will post a fresh one.
 
 ## Citation
 
-The interpretability readout this work builds on:
+This work builds on two papers — an interpretable reasoning-state readout, and the finding that a
+model's internal state carries a usable control signal for reasoning:
 
 ```bibtex
 @misc{chen2026jar,
@@ -746,7 +751,22 @@ The interpretability readout this work builds on:
 }
 ```
 
-Project page: <https://cckfdu.com/jar/>
+```bibtex
+@article{chen2026rad,
+  title   = {Does the Same Token Mean the Same State?
+             MoE Routing as Signal for Reasoning Control},
+  author  = {Chen, Kang and Yu, Mingshen and Nian, Junjie and
+             Wang, Yaoning and Cao, Yixin and Jiang, Yugang},
+  year    = {2026},
+  eprint  = {2606.22798},
+  archivePrefix = {arXiv},
+  primaryClass = {cs.CL},
+  note    = {Routing Agreement Decoding (RAD)},
+  url     = {https://arxiv.org/abs/2606.22798},
+}
+```
+
+Project pages: <https://cckfdu.com/jar/> · <https://cckfdu.com/rad/>
 
 ---
 
