@@ -71,6 +71,14 @@
 > measuring the model instead of imagining it. **Self-evolving search against a model's own
 > internals, designing the harness it actually wants to think in.**
 >
+> ![Harness alignment, measured in what the model writes and does](assets/fig-harness-alignment.png)
+>
+> <sub>Every number above is text the agents wrote or an action they took, on official-API sessions
+> over DeepSWE repositories. <b>A</b> — six style axes, Claude Code and dsh-minimal@max as the two
+> anchors. <b>B</b> — the same six axes collapsed into one distance: the tiers cut roughly 70 % of the
+> gap between how Claude Code writes and how the small harness writes. <b>C</b> — steps, output
+> tokens and tool calls per task.</sub>
+>
 > This release ships three beta tiers — **Proven**, **Swift**, **Peak** — plus a hidden fourth,
 > **Aligned** (`cct -e aligned`), carrying the newest prefix the search produced.
 >
