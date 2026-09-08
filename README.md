@@ -30,42 +30,49 @@
 
 ---
 
-> ### 0.2.0-beta.0 — three new pro tiers, and what they are for
+> ### 0.2.0-beta.0 — we read the model's own mechanism, and wrote the harness it wants
 >
-> **The same model scores very differently under different harnesses.** DeepSeek's own agent
-> `dsh` — a 46-byte system prompt and two tools — solves markedly more than the same
-> `deepseek-v4-pro` does inside Claude Code's ~12 KB prompt and 24 tools. The gap is the harness,
-> not the model.
+> **12 / 30 → 20 / 30.** Same model, same tasks, same day. The only thing that changed is the text
+> Claude Code shows it — and that text was not written by a human with good instincts. It was
+> **searched out of the model's own neuron-level mechanism.**
 >
-> This release adds three beta tiers — **Proven**, **Swift**, **Peak** — that close part of that gap
-> from inside Claude Code, plus a hidden fourth, **Aligned** (`cct -e aligned`), carrying the newest
-> prefix the search produced.
->
-> | Arm, 30 discriminative DeepSWE tasks, official API, `deepseek-v4-pro`, one run per task | Solved |
+> | 30 discriminative DeepSWE tasks · official API · `deepseek-v4-pro` · one run per task | Solved |
 > |---|---|
 > | Claude Code alone | **12 / 30** |
 > | Claude Code + `cct` | **20 / 30** |
 >
-> **Built on the community's work, but not the same idea.** The proxies that put DeepSeek behind
-> Claude Code — [UniClaudeProxy](https://github.com/vibheksoni/UniClaudeProxy),
+> **Why there was 8 tasks of room to take.** DeepSeek's own agent `dsh` — 46 bytes of system prompt,
+> two tools — solves markedly more than the *identical* `deepseek-v4-pro` does inside Claude Code's
+> ~12 KB prompt and 24 tools. The model was never the bottleneck. **The harness was.**
+>
+> **How we took it.** Not by taste, and not by guessing. We watch the running model from the inside:
+> which internal circuits light up for the first tokens of its reasoning, and how strongly. That
+> gives a ruler — a measurable distance between "thinking inside Claude Code's harness" and
+> "thinking inside the small harness at max effort". Then we search: hundreds of hand-written
+> candidate sentences, generation after generation, each isolating one variable, each with its
+> acceptance threshold written down *before* the first sample, each judged on paired per-task
+> contrasts. Ideas that read beautifully and measured worse were killed. **The prefix that shipped
+> is the one the model's own internals voted for.**
+>
+> **What we did not do — and this is the part that matters.** The proxies that put DeepSeek behind
+> Claude Code ([UniClaudeProxy](https://github.com/vibheksoni/UniClaudeProxy),
 > [claude-code-proxy](https://github.com/empero-org/claude-code-proxy),
 > [deepclaude](https://github.com/aattaran/deepclaude),
 > [deep-claude](https://github.com/dennisonbertram/deep-claude),
-> [permafrost](https://github.com/jianzhichun/permafrost) — solved the plumbing we build on:
-> wire-format translation, cache-stable prefixes, state isolation. Where several of them go next is
-> to **stage a set for the model**: rewrite or compress the harness prompt, strip the identity
-> strings, or replace native tool-calling with a ReAct/XML imitation so a foreign model will play
-> along. That works, and it costs you the model's own tool-calling behaviour.
+> [permafrost](https://github.com/jianzhichun/permafrost)) built the plumbing we stand on: wire
+> translation, cache-stable prefixes, state isolation. Where several of them go next is to **build a
+> Truman Show around the model** — rewrite or compress the harness prompt, strip the identity
+> strings, swap native tool-calling for a ReAct/XML imitation so a foreign model will play along.
+> It works, and it costs you the model's own tool-calling instincts.
 >
-> **We do not build that set.** Nothing is deleted from Claude Code's prompt, no tool is removed,
-> no ReAct emulation is introduced — the agent loop, the tool schemas and the streaming are Claude
-> Code's own. What we change is the harness *as the model reads it*, using a prefix that was
-> **derived from the model's own neuron-level mechanism**: we read, inside the running model, which
-> internal circuits light up for the first tokens of its reasoning and how strongly — and we search
-> for the text that moves that internal state from "Claude Code's harness" toward "`dsh` minimal at
-> max effort", generation after generation, each candidate isolating one variable with its acceptance
-> threshold written before the first sample. **Self-evolving search against the model's own
-> internals, designing the harness — not a stage set built around it.**
+> **We build no set. We change no model.** Nothing is deleted from Claude Code's prompt, no tool is
+> removed, no emulation is introduced — the agent loop, the tool schemas and the streaming stay
+> Claude Code's own. No fine-tune, no LoRA, no distillation. Just bytes in a prompt, chosen by
+> measuring the model instead of imagining it. **Self-evolving search against a model's own
+> internals, designing the harness it actually wants to think in.**
+>
+> This release ships three beta tiers — **Proven**, **Swift**, **Peak** — plus a hidden fourth,
+> **Aligned** (`cct -e aligned`), carrying the newest prefix the search produced.
 >
 > Details: [the three pro-only tiers](#the-three-pro-only-tiers) · [CHANGELOG](CHANGELOG.md)
 

@@ -30,36 +30,43 @@
 
 ---
 
-> ### 0.2.0-beta.0 —— 三个新的 pro 档,以及它们是干什么的
+> ### 0.2.0-beta.0 —— 我们读了模型自己的机理,然后写出它想要的 harness
 >
-> **同一个模型,换个 harness,成绩差很多。** DeepSeek 自家的 agent `dsh`——46 字节 system prompt、
-> 两个工具——解出的题明显多于同一个 `deepseek-v4-pro` 跑在 Claude Code 的约 12 KB prompt 和 24 个工具
-> 里。差距来自 harness,不是模型。
+> **12 / 30 → 20 / 30。** 同一个模型、同一批题、同一天。唯一变的是 Claude Code 递给它的那段文字——
+> 而那段文字**不是人凭直觉写出来的,是从模型自己的神经元机理里搜出来的。**
 >
-> 这一版加了三个 beta 档——**Proven**、**Swift**、**Peak**——在 Claude Code 内部把这段差距补回一部分;
-> 另有一个隐藏的第四档 **Aligned**(`cct -e aligned`),装的是搜索最新产出的前缀。
->
-> | 臂:DeepSWE 中有区分度的 30 题,官方 API,`deepseek-v4-pro`,每题跑一次 | 解出 |
+> | DeepSWE 中有区分度的 30 题 · 官方 API · `deepseek-v4-pro` · 每题跑一次 | 解出 |
 > |---|---|
 > | 只有 Claude Code | **12 / 30** |
 > | Claude Code + `cct` | **20 / 30** |
 >
-> **站在社区的成果上,但不是同一个思路。** 把 DeepSeek 接到 Claude Code 后面的那些代理——
-> [UniClaudeProxy](https://github.com/vibheksoni/UniClaudeProxy)、
+> **为什么会有这 8 道题的空间。** DeepSeek 自家的 agent `dsh`——46 字节 system prompt、两个工具——
+> 解出的题明显多于**同一个** `deepseek-v4-pro` 跑在 Claude Code 的约 12 KB prompt 和 24 个工具里。
+> 瓶颈从来不是模型。**是 harness。**
+>
+> **我们是怎么把它拿回来的。** 不靠品味,也不靠猜。我们从内部看着运行中的模型:推理最初的若干 token 上,
+> 哪些内部回路被点亮、点得有多亮。这就给出了一把尺——"在 Claude Code 的 harness 里思考"到"在小 harness
+> @max 里思考"之间,有一个**可测量的距离**。然后开始搜:数百条手写候选,一代接一代,每条只隔离一个变量,
+> 每条的判决线**写在第一发采样之前**,判决只看逐题配对差。读起来漂亮但测出来更差的想法,当场砍掉。
+> **最后发布的这段前缀,是模型自己的内部机理投票选出来的。**
+>
+> **以及我们没有做什么——这才是关键。** 把 DeepSeek 接到 Claude Code 后面的那些代理
+> ([UniClaudeProxy](https://github.com/vibheksoni/UniClaudeProxy)、
 > [claude-code-proxy](https://github.com/empero-org/claude-code-proxy)、
 > [deepclaude](https://github.com/aattaran/deepclaude)、
 > [deep-claude](https://github.com/dennisonbertram/deep-claude)、
-> [permafrost](https://github.com/jianzhichun/permafrost)——已经把我们赖以工作的管道做好了:线格式翻译、
-> 缓存稳定的前缀、状态隔离。它们中有几个再往前一步的做法,是**给模型搭一个楚门的世界**:重写或压缩 harness
-> prompt、抹掉身份串,或者用 ReAct/XML 模拟去替换原生工具调用,好让一个外来模型愿意配合。这条路走得通,
-> 代价是模型自己的工具调用行为。
+> [permafrost](https://github.com/jianzhichun/permafrost))把我们赖以站立的管道做好了:线格式翻译、
+> 缓存稳定前缀、状态隔离。它们中有几个再往前一步的做法,是**给模型搭一个楚门的世界**——重写或压缩
+> harness prompt、抹掉身份串、用 ReAct/XML 模拟替换原生工具调用,好让一个外来模型愿意配合。这条路走得通,
+> 代价是模型自己的工具调用本能。
 >
-> **我们不搭这个世界。** Claude Code 的 prompt 一个字节没删,工具一个没移除,也没有引入 ReAct 模拟——
-> agent 循环、工具 schema、流式全都是 Claude Code 自己的。我们改的是**模型读到的那个 harness**,用的是一段
-> **从模型内在神经元机理里搜出来的**前缀:在运行中的模型内部读取——推理最初若干 token 上,哪些内部回路被
-> 点亮、各自被调动了多少能量——再一代一代地搜"能把这个内部状态从 Claude Code 的 harness 推向 `dsh` 极简版
-> @max"的文本,每条候选只隔离一个变量,判决线写在第一发之前。**用模型内在神经元机理做自进化搜索,去设计
-> harness,而不是在它周围搭一个布景。**
+> **我们不搭布景,也不动模型。** Claude Code 的 prompt 一个字节没删,工具一个没移除,没有引入任何模拟——
+> agent 循环、工具 schema、流式全是 Claude Code 自己的。没有微调、没有 LoRA、没有蒸馏。只是 prompt 里的
+> 几行字,由**测量模型**而不是**想象模型**选出来。**用模型内在机理做自进化搜索,去设计它真正愿意在里面
+> 思考的那个 harness。**
+>
+> 这一版发布三个 beta 档——**Proven**、**Swift**、**Peak**——外加一个隐藏的第四档 **Aligned**
+> (`cct -e aligned`),装的是搜索最新产出的前缀。
 >
 > 细节见[三个 pro 专属档](#三个-pro-专属档) · [CHANGELOG](CHANGELOG.md)
 
