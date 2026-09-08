@@ -45,14 +45,18 @@
 > two tools — solves markedly more than the *identical* `deepseek-v4-pro` does inside Claude Code's
 > ~12 KB prompt and 24 tools. The model was never the bottleneck. **The harness was.**
 >
-> **How we took it.** Not by taste, and not by guessing. We watch the running model from the inside:
-> which internal circuits light up for the first tokens of its reasoning, and how strongly. That
-> gives a ruler — a measurable distance between "thinking inside Claude Code's harness" and
-> "thinking inside the small harness at max effort". Then we search: hundreds of hand-written
-> candidate sentences, generation after generation, each isolating one variable, each with its
-> acceptance threshold written down *before* the first sample, each judged on paired per-task
-> contrasts. Ideas that read beautifully and measured worse were killed. **The prefix that shipped
-> is the one the model's own internals voted for.**
+> **How we took it.** Not by taste, and not by guessing. We watch the running model from the
+> inside — which internal circuits light up as it reasons, and how strongly — and turn that into a
+> ruler: a measurable distance between thinking inside Claude Code's harness and thinking inside
+> the small one at max effort. A **self-evolving search** then walks that distance down, generation
+> after generation, each one proposed from what the last one ruled out. **The prefix that shipped is
+> the one the model's own internals voted for.**
+>
+> The readout we build on is [**JAR — Jacobian Axis Readout**](https://cckfdu.com/jar/) ([arXiv:2608.17638](https://arxiv.org/abs/2608.17638)),
+> which couples an interpretable reasoning-state readout to a model's own internals. JAR reads a
+> single model answering a single prompt; **what is new here is carrying it into the agent setting** —
+> a whole session rather than one answer, a harness rather than a question — and closing the loop, so
+> the readout does not only explain a prefix, it selects the next one.
 >
 > **What we did not do — and this is the part that matters.** The proxies that put DeepSeek behind
 > Claude Code ([UniClaudeProxy](https://github.com/vibheksoni/UniClaudeProxy),
@@ -147,7 +151,7 @@ Work as usual, then read the receipt on exit:
 [Requirements](#requirements) · [Quick start](#quick-start) · [Which tier](#which-tier-should-i-use) ·
 [Usage](#usage) · [Session modes](#three-session-modes) · [Exit receipt](#how-to-read-the-exit-receipt) ·
 [Environment variables](#environment-variables) · [Troubleshooting](#troubleshooting) · [Roadmap](#roadmap) · [FAQ](#faq) ·
-[Community](#community) · [License](#license)
+[Community](#community) · [Citation](#citation) · [License](#license)
 
 ---
 
@@ -721,6 +725,28 @@ In this mode there is no tier table; the default is pure passthrough + observati
 
 The WeChat code rotates every seven days — this one is **valid until 2026-09-15**. Once it expires,
 join over QQ instead, or email <hello@seedsky.ai> and we will post a fresh one.
+
+---
+
+## Citation
+
+The interpretability readout this work builds on:
+
+```bibtex
+@misc{chen2026jar,
+  title  = {Beyond the Trace: Coupling an Interpretable Reasoning-State
+            Readout to Native MoE Routing},
+  author = {Chen, Kang and Zhao, Sihan and Cao, Yixin and Jiang, Yu-Gang},
+  year   = {2026},
+  eprint = {2608.17638},
+  archivePrefix = {arXiv},
+  primaryClass = {cs.AI},
+  note   = {JAR --- Jacobian Axis Readout},
+  url    = {https://arxiv.org/abs/2608.17638},
+}
+```
+
+Project page: <https://cckfdu.com/jar/>
 
 ---
 

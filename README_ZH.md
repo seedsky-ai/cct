@@ -44,11 +44,15 @@
 > 解出的题明显多于**同一个** `deepseek-v4-pro` 跑在 Claude Code 的约 12 KB prompt 和 24 个工具里。
 > 瓶颈从来不是模型。**是 harness。**
 >
-> **我们是怎么把它拿回来的。** 不靠品味,也不靠猜。我们从内部看着运行中的模型:推理最初的若干 token 上,
-> 哪些内部回路被点亮、点得有多亮。这就给出了一把尺——"在 Claude Code 的 harness 里思考"到"在小 harness
-> @max 里思考"之间,有一个**可测量的距离**。然后开始搜:数百条手写候选,一代接一代,每条只隔离一个变量,
-> 每条的判决线**写在第一发采样之前**,判决只看逐题配对差。读起来漂亮但测出来更差的想法,当场砍掉。
-> **最后发布的这段前缀,是模型自己的内部机理投票选出来的。**
+> **我们是怎么把它拿回来的。** 不靠品味,也不靠猜。我们从内部看着运行中的模型——它在推理时,哪些内部回路
+> 被点亮、点得有多亮——并把它变成一把尺:"在 Claude Code 的 harness 里思考"到"在小 harness @max 里思考"
+> 之间,有一个**可测量的距离**。然后用**自进化算法**一代一代把这个距离压下去,每一代都由上一代被推翻的
+> 结论生出来。**最后发布的这段前缀,是模型自己的内部机理投票选出来的。**
+>
+> 这把尺基于 [**JAR —— Jacobian Axis Readout**](https://cckfdu.com/jar/)([arXiv:2608.17638](https://arxiv.org/abs/2608.17638)),该工作把一个
+> 可解释的推理状态读数与模型自身的内部机理耦合起来。JAR 读的是**单个模型回答单个问题**;**我们做的新事情是
+> 把它带进 agent 场景**——对象从一次回答变成一整段会话、从一个问题变成一整套 harness——并把回路闭上:
+> 这把尺不只是解释一段前缀,而是用来选出下一段。
 >
 > **以及我们没有做什么——这才是关键。** 把 DeepSeek 接到 Claude Code 后面的那些代理
 > ([UniClaudeProxy](https://github.com/vibheksoni/UniClaudeProxy)、
@@ -129,7 +133,7 @@ Choose 1-6 (Enter=default):
 [环境要求](#环境要求) · [快速上手](#快速上手) · [该选哪个档](#该选哪个档) ·
 [用法](#用法) · [三种会话模式](#三种会话模式) · [回执怎么读](#回执怎么读) ·
 [环境变量](#环境变量) · [故障排查](#故障排查) · [路线图](#路线图) · [常见问题](#常见问题) ·
-[交流群](#交流群) · [许可](#许可)
+[交流群](#交流群) · [引用](#引用) · [许可](#许可)
 
 ---
 
@@ -645,6 +649,28 @@ ANTHROPIC_BASE_URL=http://127.0.0.1:8301 ANTHROPIC_MODEL=deepseek-v4-flash \
 
 微信群码七天一换 —— 当前这张 **2026-09-15 前有效**。过期了可以走 QQ 群,或发邮件到 <hello@seedsky.ai>,
 我们会贴一张新的。
+
+---
+
+## 引用
+
+本工作所基于的可解释性读数:
+
+```bibtex
+@misc{chen2026jar,
+  title  = {Beyond the Trace: Coupling an Interpretable Reasoning-State
+            Readout to Native MoE Routing},
+  author = {Chen, Kang and Zhao, Sihan and Cao, Yixin and Jiang, Yu-Gang},
+  year   = {2026},
+  eprint = {2608.17638},
+  archivePrefix = {arXiv},
+  primaryClass = {cs.AI},
+  note   = {JAR --- Jacobian Axis Readout},
+  url    = {https://arxiv.org/abs/2608.17638},
+}
+```
+
+项目主页: <https://cckfdu.com/jar/>
 
 ---
 
