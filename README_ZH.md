@@ -67,10 +67,9 @@
 >
 > ![harness 对齐,量的是模型写了什么、做了什么](assets/fig-harness-alignment.png)
 >
-> <sub>图中每一个数都是 agent 实际写出的文字或实际做过的动作,来自官方 API 在 DeepSWE 仓库上的会话。
+> <sub>图中每一个数都是从 agent 实际写出的推理文字里数出来的,来自官方 API 在 DeepSWE 仓库上的会话。
 > <b>A</b> —— 六条风格轴,两端锚点是 Claude Code 与 dsh 极简版 @max。<b>B</b> —— 六轴压成一个距离:
-> 三个档把"Claude Code 的写法"到"小 harness 的写法"之间的差距砍掉约 70%。<b>C</b> —— 每题的步数、
-> 输出 token 与工具调用次数。</sub>
+> 三个档把"Claude Code 的写法"到"小 harness 的写法"之间的差距砍掉约 70%。</sub>
 >
 > 这一版发布三个 beta 档——**Proven**、**Swift**、**Peak**——外加一个隐藏的第四档 **Aligned**
 > (`cct -e aligned`),装的是搜索最新产出的前缀。
