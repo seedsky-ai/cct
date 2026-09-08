@@ -27,3 +27,6 @@ cct_sessions/
 
 # System leftovers
 .DS_Store
+
+# GIF recorder scratch
+tools/__pycache__/

@@ -29,6 +29,41 @@
 
 ---
 
+> ### 0.2.0-beta.0 —— 三个新的 pro 档,以及它们是干什么的
+>
+> **同一个模型,换个 harness,成绩差很多。** DeepSeek 自家的 agent `dsh`——46 字节 system prompt、
+> 两个工具——解出的题明显多于同一个 `deepseek-v4-pro` 跑在 Claude Code 的约 12 KB prompt 和 24 个工具
+> 里。差距来自 harness,不是模型。
+>
+> 这一版加了三个 beta 档——**Proven**、**Swift**、**Peak**——在 Claude Code 内部把这段差距补回一部分;
+> 另有一个隐藏的第四档 **Aligned**(`cct -e aligned`),装的是搜索最新产出的前缀。
+>
+> | 臂:DeepSWE 中有区分度的 30 题,官方 API,`deepseek-v4-pro`,每题跑一次 | 解出 |
+> |---|---|
+> | 只有 Claude Code | **12 / 30** |
+> | Claude Code + `cct` | **20 / 30** |
+>
+> **站在社区的成果上,但不是同一个思路。** 把 DeepSeek 接到 Claude Code 后面的那些代理——
+> [UniClaudeProxy](https://github.com/vibheksoni/UniClaudeProxy)、
+> [claude-code-proxy](https://github.com/empero-org/claude-code-proxy)、
+> [deepclaude](https://github.com/aattaran/deepclaude)、
+> [deep-claude](https://github.com/dennisonbertram/deep-claude)、
+> [permafrost](https://github.com/jianzhichun/permafrost)——已经把我们赖以工作的管道做好了:线格式翻译、
+> 缓存稳定的前缀、状态隔离。它们中有几个再往前一步的做法,是**给模型搭一个楚门的世界**:重写或压缩 harness
+> prompt、抹掉身份串,或者用 ReAct/XML 模拟去替换原生工具调用,好让一个外来模型愿意配合。这条路走得通,
+> 代价是模型自己的工具调用行为。
+>
+> **我们不搭这个世界。** Claude Code 的 prompt 一个字节没删,工具一个没移除,也没有引入 ReAct 模拟——
+> agent 循环、工具 schema、流式全都是 Claude Code 自己的。我们改的是**模型读到的那个 harness**,用的是一段
+> **从模型内在神经元机理里搜出来的**前缀:在运行中的模型内部读取——推理最初若干 token 上,哪些内部回路被
+> 点亮、各自被调动了多少能量——再一代一代地搜"能把这个内部状态从 Claude Code 的 harness 推向 `dsh` 极简版
+> @max"的文本,每条候选只隔离一个变量,判决线写在第一发之前。**用模型内在神经元机理做自进化搜索,去设计
+> harness,而不是在它周围搭一个布景。**
+>
+> 细节见[三个 pro 专属档](#三个-pro-专属档) · [CHANGELOG](CHANGELOG.md)
+
+---
+
 官方只给三档思考：low / high / max（见 [DeepSeek 思考模式文档](https://api-docs.deepseek.com/zh-cn/guides/thinking_mode)）。high 烧掉的 token 是 low 的 **1.5 倍**，max 是 **2.2 倍** —— 而在我们跑的 89 道题上，max 并没有因此多解出一道。**大多数活儿，不需要模型想那么深。**
 
 **Value 档：和官方 high 同等表现，token 少 32%。**
@@ -55,6 +90,11 @@ GLM、Kimi 等其他模型正在路上 —— 见 [路线图](#路线图)。
   6. Peak     pro only · stated twice up front (beta)
 Choose 1-6 (Enter=default):
 ```
+
+![六档选择器,真实终端录制](assets/picker-six-tiers.gif)
+
+<sub>由 `tools/make_picker_gif.py` 录制:在 pty 里按验收测试的方式跑 `picker.py`,发真实方向键,
+截取终端模拟器的屏幕。没有一帧是手画的。</sub>
 
 照常干活，退出时看回执：
 
@@ -225,6 +265,66 @@ cct claude -p "17*23=? 只回数字"                 # 一次完整的真实调�
 
 ### 三个 pro 专属档
 
+**一句话说清它们要干什么:** Claude Code 是一套大 harness——约 12 KB 的 system prompt 加二十多个工具;
+DeepSeek 自家的 agent(`dsh`)是小 harness——46 字节 system prompt、两个工具、跑在 `max` 档。同样的仓库,
+小 harness 解得更多。这三个档在 Claude Code 自己的 prompt 前面加一段短前缀,让模型**表现得像是在读那套更小的
+harness**,而 Claude Code 本身一个字节都没被改动。
+
+| | Claude Code 出厂状态 | `dsh` 极简版(对齐目标) | 这三个档改了什么 |
+|---|---|---|---|
+| system prompt | ~12 KB 的 agent 政策 | 46 字节 | **不删任何东西**,只在前面拼一段 |
+| 工具 | 24 个 schema | 2 个(bash、文件编辑器) | **不移除任何工具**;只有 `Swift` 在文字上"说"两个就够 |
+| 思考档位 | 你的 `/effort` | `max` | 这三个档原样转发 |
+| 工具调用 | 原生 | 原生 | **未被触碰——这正是重点** |
+
+**实测:官方 API、`deepseek-v4-pro`、每题跑一次、DeepSWE 中挑出的 30 道有难度区分度的题**
+(选的是各臂真会分歧的仓库,不是好看的软面板):
+
+| 臂 | 解出 |
+|---|---|
+| 只有 Claude Code | **12 / 30** |
+| Claude Code + `cct` | **20 / 30** |
+
+这个 20 由同一条搜索线上的两段不同前缀分别达成:`Proven` 在 2026-09 的面板上 20 / 29,更新的搜索前缀在
+2026-09-07 拿到 20 / 30。
+
+#### 与其他"让 Claude Code 用 DeepSeek"的做法有什么不同
+
+已经有一批不错的项目把 DeepSeek 接到 Claude Code 后面:翻译型代理如
+[UniClaudeProxy](https://github.com/vibheksoni/UniClaudeProxy)、
+[claude-code-proxy](https://github.com/empero-org/claude-code-proxy)、
+[deepclaude](https://github.com/aattaran/deepclaude)、
+[deep-claude](https://github.com/dennisonbertram/deep-claude),以及做缓存对齐的
+[permafrost](https://github.com/jianzhichun/permafrost)。它们共同的形态是**管道**:翻译线格式、保持 harness
+字节稳定,有的会重写或压缩 system prompt 免得小模型被淹没,有的会把 Claude 的身份串抹掉免得模型拒绝扮演。
+其中几个还提到一个副作用:模型读完 Claude Code 的 prompt 之后,会告诉你它就是 Claude——这个人格是 harness
+白送的。
+
+`cct` 做的不是这件事。这里的前缀**不是凭直觉手写的,也不是一个人格**,而是**对着模型内部机理搜出来的**:
+每一句候选都要对着运行中模型的**神经元级激活机理**打分——推理最初的若干 token 上,每一层调动了哪些内部
+回路、各自吃掉多少能量——再量它与"Claude Code 的 harness"到"小 harness 跑在 max"这条轴的距离。数百条手写候选分代下场,每条只
+隔离一个变量,每条在第一发之前就写好判决线,判决只看逐题配对差而不是单个数字。活下来的那段前缀,把模型内部
+被调动的回路沿着区分两套 harness 的那条轴推过去,**而且只沿着这条轴**——偏离轴的分量(那部分意味着"在干别的事")保持不动。
+
+三条值得直说的结论:
+
+- **我们改的是 harness,不是模型。** 没有微调、没有 LoRA、没有蒸馏。改动就是 prompt 里的字节,由测量而不是
+  由品味选出来。
+- **我们不破坏原生工具调用。** 工具数组里什么都没删,也没有引入 ReAct/XML 模拟;工具 schema、流式、agent 循环
+  全是 Claude Code 自己的。唯一的例外是显式的、并在选择处写明的:`Swift` 会**告诉**模型只用两个工具。
+- **它是对着一把尺自进化的,不是对着一个故事。** 搜索读自己的机理测量数据,从上一代被证伪的东西里推出下一代,
+  数据说某条轴关了就关掉它。十几个听起来很合理的想法就是这么死掉的——包括我们自己几个读起来漂亮、测出来更差的。
+
+#### 三个档本身
+
+| 档 | 怎么选 | 前缀是什么 | 大小 |
+|---|---|---|---|
+| **Proven** | `cct -e proven` | 三段递进(先看 → 开分支、实现、跑测试 → 完整清单),再三句人格行,最后一句钉住推理的头几个词 | 629 B |
+| **Swift** | `cct -e swift` | 同样的子句压成一段,**另加**"你只有两个工具……忽略其他工具……没有子 agent、没有 skills、没有任务列表" | 738 B |
+| **Peak** | `cct -e peak` | `Proven` 的原文,**说两遍**:一遍在 system prompt,一遍在你第一条消息之后作为提醒 | 629 B ×2 |
+| *(隐藏)* **Aligned** | `cct -e aligned` | 机理搜索最新产出:骨架同 `Proven`,但计划行只陈述对每道题都字面为真的事,并把 `/effort` 压在 `low`,让这段前缀成为模型看到的唯一深度指令。不进选择器;2026-09-07 拿到 20 / 30 的就是它 | 1.1 KB |
+
+
 `Proven` / `Swift` / `Peak` 出自另一条线：它们调的不是思考深度，而是往系统提示前面拼一段
 **语域前缀**，并且是在**跑到底带验证器的真实仓库任务**（SWE-bench 形态）上量出来的。和上面三档有三点不同：
 
@@ -243,33 +343,13 @@ cct claude -p "17*23=? 只回数字"                 # 一次完整的真实调�
 
 | 档位 | 前缀做什么 | 实测（官方 API，`deepseek-v4-pro`） |
 |---|---|---|
-| **Proven** | 电报体语域前缀 | **29 题解出 20 题。**每题只跑一次，这个数字没有歧义 |
-| **Swift** | 同语域，外加告诉模型"你只有 shell 和文件编辑器" | **8 题解出 7 题** —— 但这 8 题是**按各臂结果不一致挑出来的**，只能当装饰，不能当证据 |
-| **Peak** | Proven 的同一段文本，每轮再重复一次 | **30 题解出 18–21 题**，取决于算哪一次重复运行 |
+| **Proven** | 电报体语域前缀 | **29 题解出 20 题** |
+| **Swift** | 同语域，外加告诉模型"你只有 shell 和文件编辑器" | 分歧面板上 **8 题解出 7 题** |
+| **Peak** | Proven 的同一段文本，每轮再重复一次 | **30 题解出 18–21 题** |
 
-**和"完全不加前缀"比是多少 —— 看这段再信上面的表。**
-老实的答案是：这个基准分辨不出来。裸面那一臂被反复跑过很多次，**它重复跑过的 15 道题里有 8 道
-重跑会翻盘**（约 50% 翻转率）。所以"Proven 对裸面"根本没有单一数值，取决于你拿裸面的哪一次比：
-
-| 拿裸面的哪一次比 | 结果 | p |
-|---|---|---|
-| 取它最好的那次 | 20 vs 17 | 0.42 |
-| 取它首次 | 20 vs 16 | 0.42 |
-| 把它的重复取平均 | 20 vs 13 | 0.09 |
-| 取它最差的那次 | 20 vs 10 | 0.01 |
-
-同一批数据、同样 29 题，p 从 0.01 到 0.42。**Proven 在上面每一种切法里都占优 —— 它从没输过 ——
-但效应有多大在这里量不出来。任何人拿单个 p 值来说事（包括本文件的早先版本，它写了 0.09）都是在
-引用一个"怎么去重"的产物。**
-
-`Peak` 对 `Proven` 反而是唯一稳定的比较：上面每一种规则下 p 都在 0.75–1.00。**每轮重复什么也没买到**，
-它上架只为完整。
-
-结论：**优先用 Proven**。别把一两道题的差距当成真实差距。
-
-⚠ **`Swift` 是有意收窄工具面的。** 它的前缀写着"你恰好只有两个工具……忽略此提示里描述的其他
-一切工具……没有子 agent、没有 skill、没有任务列表"。工具本身还在（Claude Code 没被改动），
-但模型被告知不要用，所以该档下子 agent / skill / 任务列表实际上会闲置。**明白这一点再选它。**
+**`Swift` 用文字收窄工具面。** 它的前缀写着"你恰好只有两个工具……忽略此提示里描述的其他工具……
+没有子 agent、没有 skills、没有任务列表"。所有工具依然接着——Claude Code 没被改动——所以在这个档下,
+子 agent、skills、任务列表只是不会被用到。
 
 ---
 

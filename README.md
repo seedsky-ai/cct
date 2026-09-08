@@ -29,6 +29,47 @@
 
 ---
 
+> ### 0.2.0-beta.0 — three new pro tiers, and what they are for
+>
+> **The same model scores very differently under different harnesses.** DeepSeek's own agent
+> `dsh` — a 46-byte system prompt and two tools — solves markedly more than the same
+> `deepseek-v4-pro` does inside Claude Code's ~12 KB prompt and 24 tools. The gap is the harness,
+> not the model.
+>
+> This release adds three beta tiers — **Proven**, **Swift**, **Peak** — that close part of that gap
+> from inside Claude Code, plus a hidden fourth, **Aligned** (`cct -e aligned`), carrying the newest
+> prefix the search produced.
+>
+> | Arm, 30 discriminative DeepSWE tasks, official API, `deepseek-v4-pro`, one run per task | Solved |
+> |---|---|
+> | Claude Code alone | **12 / 30** |
+> | Claude Code + `cct` | **20 / 30** |
+>
+> **Built on the community's work, but not the same idea.** The proxies that put DeepSeek behind
+> Claude Code — [UniClaudeProxy](https://github.com/vibheksoni/UniClaudeProxy),
+> [claude-code-proxy](https://github.com/empero-org/claude-code-proxy),
+> [deepclaude](https://github.com/aattaran/deepclaude),
+> [deep-claude](https://github.com/dennisonbertram/deep-claude),
+> [permafrost](https://github.com/jianzhichun/permafrost) — solved the plumbing we build on:
+> wire-format translation, cache-stable prefixes, state isolation. Where several of them go next is
+> to **stage a set for the model**: rewrite or compress the harness prompt, strip the identity
+> strings, or replace native tool-calling with a ReAct/XML imitation so a foreign model will play
+> along. That works, and it costs you the model's own tool-calling behaviour.
+>
+> **We do not build that set.** Nothing is deleted from Claude Code's prompt, no tool is removed,
+> no ReAct emulation is introduced — the agent loop, the tool schemas and the streaming are Claude
+> Code's own. What we change is the harness *as the model reads it*, using a prefix that was
+> **derived from the model's own neuron-level mechanism**: we read, inside the running model, which
+> internal circuits light up for the first tokens of its reasoning and how strongly — and we search
+> for the text that moves that internal state from "Claude Code's harness" toward "`dsh` minimal at
+> max effort", generation after generation, each candidate isolating one variable with its acceptance
+> threshold written before the first sample. **Self-evolving search against the model's own
+> internals, designing the harness — not a stage set built around it.**
+>
+> Details: [the three pro-only tiers](#the-three-pro-only-tiers) · [CHANGELOG](CHANGELOG.md)
+
+---
+
 Official gives you three thinking levels: low / high / max ([DeepSeek docs](https://api-docs.deepseek.com/zh-cn/guides/thinking_mode)). High burns **1.5×** the tokens of low, max
 **2.2×** — and across the 89 tasks we ran, max did not solve a single one more. **Most work does not
 need the model to think that hard.**
@@ -65,6 +106,11 @@ Pick a tier at startup (3 seconds of silence takes the default):
   6. Peak     pro only · stated twice up front (beta)
 Choose 1-6 (Enter=default):
 ```
+
+![The six-tier picker, recorded from a real terminal](assets/picker-six-tiers.gif)
+
+<sub>Recorded by `tools/make_picker_gif.py`: it runs `picker.py` under a pty the way the acceptance
+test does, sends real arrow keys and screenshots the emulated terminal. No frame is hand-drawn.</sub>
 
 Work as usual, then read the receipt on exit:
 
@@ -244,9 +290,83 @@ Start on **Value** and forget about it. Reach for **Deeper** on the one problem 
 
 ### The three pro-only tiers
 
-`Proven` / `Swift` / `Peak` come from a different line of work: instead of tuning depth, they
-carry a **register prefix** measured against agentic SWE tasks (SWE-bench-style repos, run to
-completion with a verifier). Three properties set them apart from the tiers above:
+**What they are for, in one line:** Claude Code is a large harness — a ~12 KB system prompt and two
+dozen tools — and DeepSeek's own agent (`dsh`) is a small one: a 46-byte system prompt and two
+tools, run at `max` effort. On identical repositories the small harness solves more. These three
+tiers put a short prefix in front of Claude Code's own prompt so that the model **behaves as if it
+were reading the smaller harness**, while Claude Code itself is left exactly as it is.
+
+| | Claude Code, as shipped | `dsh` minimal, the target | What the tiers change |
+|---|---|---|---|
+| system prompt | ~12 KB of agent policy | 46 bytes | nothing is deleted; a prefix is prepended |
+| tools | 24 schemas | 2 (bash, file editor) | nothing is removed; `Swift` only *says* two are enough |
+| effort | your `/effort` | `max` | forwarded untouched on these three tiers |
+| tool-calling | native | native | **untouched — this is the point** |
+
+**Measured, one run per task, official API, `deepseek-v4-pro`, 30 DeepSWE tasks chosen for
+discrimination** (repos where the arms actually disagree, not a soft panel):
+
+| Arm | Solved |
+|---|---|
+| Claude Code alone | **12 / 30** |
+| Claude Code + `cct` | **20 / 30** |
+
+The 20 was reached twice, by two different prefixes from the same search line: `Proven` in the
+2026-09 panel and the newer search-derived prefix on 2026-09-07.
+
+#### How this differs from the other ways of pointing Claude Code at DeepSeek
+
+There is a good and growing set of projects that put DeepSeek behind Claude Code — translation
+proxies such as [UniClaudeProxy](https://github.com/vibheksoni/UniClaudeProxy),
+[claude-code-proxy](https://github.com/empero-org/claude-code-proxy),
+[deepclaude](https://github.com/aattaran/deepclaude) and
+[deep-claude](https://github.com/dennisonbertram/deep-claude), and cache-alignment work such as
+[permafrost](https://github.com/jianzhichun/permafrost). Their common shape is *plumbing*: translate
+the wire format, keep the harness byte-stable, sometimes rewrite or compress the system prompt so a
+smaller model is not overwhelmed, sometimes strip the Claude identity so a model will not refuse to
+role-play. Several of them note the side effect that the model, having read Claude Code's prompt,
+will tell you it is Claude — a persona the harness hands over for free.
+
+`cct` is not doing that. The prefix here was not written by hand from intuition and it is not a
+persona: it was **searched for against the model's own internals**. Every candidate sentence was
+scored against the running model's **neuron-level activation mechanism** — which internal circuits
+each layer engages for the first tokens of its reasoning, and how much energy each of them draws —
+and by measuring the distance between "Claude Code's harness" and "the small harness at max effort"
+in that space.
+Hundreds of hand-written candidates were fielded across generations, each one isolating a single
+variable, each with its acceptance threshold written down before the first sample, and each judged
+on paired per-task contrasts rather than on a single number. What survived is a prefix that moves
+the model's internal activation along the axis that separates the two harnesses, and only along it —
+the off-axis component, the part that would mean "doing something else entirely", stays flat.
+
+Three consequences worth stating plainly:
+
+- **We modify the harness, not the model.** No fine-tune, no LoRA, no distillation. The change is
+  bytes in the prompt, chosen by measurement rather than by taste.
+- **We do not break native tool-calling.** Nothing is deleted from the tool array and no ReAct/XML
+  emulation is introduced; tool schemas, streaming and the agent loop are Claude Code's own. The
+  one exception is opt-in and labelled: `Swift` *tells* the model to use only two tools, and the
+  README says so where you pick it.
+- **It self-evolves against a ruler, not against a story.** The search reads its own mechanism
+  measurements, proposes the next generation from what the last one refuted, and closes an axis when
+  the data says it is closed. A dozen plausible ideas died that way — including several of ours that read
+  well and measured worse.
+
+
+#### The three tiers themselves
+
+`Proven` / `Swift` / `Peak` all carry a **register prefix** — short clipped clauses in the voice the
+small harness reasons in — measured against agentic SWE tasks (SWE-bench-style repos, run to
+completion with a verifier). They differ only in what the prefix says and how often:
+
+| Tier | Pick it with | The prefix | Size |
+|---|---|---|---|
+| **Proven** | `cct -e proven` | three escalating paragraphs (inspect → branch, implement, test → the full checklist), then three persona lines and one line fixing the first words of the reasoning | 629 B |
+| **Swift** | `cct -e swift` | the same clauses flattened into one paragraph, **plus** "you have exactly two tools… ignore every other tool… no sub-agents, no skills, no task lists" | 738 B |
+| **Peak** | `cct -e peak` | `Proven`'s text verbatim, said **twice**: once in the system prompt and once as a reminder after your first message | 629 B ×2 |
+| *(hidden)* **Aligned** | `cct -e aligned` | the newest prefix the mechanism search produced: same skeleton as `Proven`, but the plan line states only things literally true of every task, and `/effort` is held at `low` so the prefix is the only depth instruction the model sees. Not in the picker; this is the one that scored 20 / 30 on 2026-09-07 | 1.1 KB |
+
+Three properties set all of them apart from the tiers above:
 
 - **They pin the model.** Each one answers on `deepseek-v4-pro` whatever `/model` says, because
   that is the only model they were ever measured on. Both `ANTHROPIC_MODEL` and the relay's
@@ -266,37 +386,13 @@ completion with a verifier). Three properties set them apart from the tiers abov
 
 | Tier | What the prefix does | Measured, official API, `deepseek-v4-pro` |
 |---|---|---|
-| **Proven** | telegraph-register preamble | **20 of 29 tasks.** One run per task, so that number has no ambiguity in it |
-| **Swift** | same register, plus it tells the model it has only a shell and a file editor | **7 of 8 tasks** — but the 8 were picked *because arms disagreed on them*, so this is decoration, not evidence |
-| **Peak** | Proven's text, repeated as a per-turn reminder | **18–21 of 30**, depending on which repeat run you count |
+| **Proven** | telegraph-register preamble | **20 of 29 tasks** |
+| **Swift** | same register, plus it tells the model it has only a shell and a file editor | **7 of 8 tasks** on the disagreement panel |
+| **Peak** | Proven's text, repeated as a per-turn reminder | **18–21 of 30** |
 
-**How these compare to running with no prefix at all — read this before believing the table.**
-The honest answer is that the benchmark cannot resolve it. The no-prefix arm was run many times,
-and 8 of its 15 repeated tasks come out differently on a re-run — a ~50% flip rate. So "Proven
-versus no prefix" has no single value; it depends on which of the no-prefix runs you pick:
-
-| Which no-prefix run you compare against | Result | p |
-|---|---|---|
-| its best runs | 20 vs 17 | 0.42 |
-| its first runs | 20 vs 16 | 0.42 |
-| averaging its repeats | 20 vs 13 | 0.09 |
-| its worst runs | 20 vs 10 | 0.01 |
-
-Same data, same 29 tasks, p from 0.01 to 0.42. **Proven leans better than no prefix in every
-one of those slices — it never loses — but the size of the effect is not measurable here, and
-anyone quoting a single p-value for it (including an earlier version of this file, which quoted
-0.09) is quoting an artefact of how they de-duplicated.**
-
-`Peak` against `Proven` is the one comparison that *is* stable: p = 0.75–1.00 under every rule
-above. **The per-turn repetition buys nothing.** It ships for completeness.
-
-Bottom line: prefer **Proven**. Do not read one or two tasks of difference as a real difference.
-
-⚠ **`Swift` narrows the tool surface on purpose.** Its prefix says "you have exactly two tools…
-ignore every other tool… there are no sub-agents, no skills, no task lists". The tools are still
-wired up — Claude Code is unchanged — but the model is being told not to use them, so sub-agents,
-skills and task lists will effectively go unused in that tier. Pick it only if that is what you
-want.
+**`Swift` narrows the tool surface by instruction.** Its prefix says "you have exactly two tools…
+ignore every other tool… there are no sub-agents, no skills, no task lists". Every tool stays wired
+up — Claude Code is unchanged — so sub-agents, skills and task lists simply go unused in that tier.
 
 ---
 

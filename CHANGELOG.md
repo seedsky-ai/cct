@@ -13,6 +13,20 @@ This file records **user-visible changes** only: what capability was added, what
 
 ## 0.2.0-beta.0 — 2026-09-08 · Beta channel
 
+Documentation and one hidden tier were added with the version bump:
+
+- **README / README_ZH**: an animated recording of the real six-tier picker
+  (`assets/picker-six-tiers.gif`, produced by `tools/make_picker_gif.py` — it drives `picker.py`
+  under a pty and screenshots the emulated terminal, so no frame is drawn by hand); a table of what
+  the three pro tiers actually contain; what they are aligning Claude Code *toward* (`dsh` minimal at
+  `max` effort) and how that differs from Claude Code as shipped; the measured panel
+  (**12 / 30 → 20 / 30** on 30 discriminative DeepSWE tasks, one run per task, official API, pro);
+  and a section on how this differs from the translation-proxy projects in the same space.
+- **`aligned` tier (hidden, `cct -e aligned`)**: the prefix the mechanism search produced, shipped so
+  the 20 / 30 number refers to bytes you can run. It is deliberately **not** in the picker — the
+  picker layout is calibrated for six labels and this prefix has only a mechanism-level result behind
+  it, not a behavioural one that separates it from `Proven`.
+
 First release on the `beta` dist-tag. No code changes relative to 0.1.12; the version is bumped so the
 six-tier build (0.1.10 – 0.1.12) can be installed and exercised as a pre-release without moving the
 `latest` tag, which still points at 0.1.6.

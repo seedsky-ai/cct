@@ -163,6 +163,18 @@
     "tm03x5"
    ],
    "desc": "pro only · stated twice up front (beta)"
+  },
+  {
+   "name": "aligned",
+   "label": "Aligned",
+   "file": "preambles/pro_aligned.txt",
+   "force_model": "deepseek-v4-pro",
+   "splice_skip_billing": true,
+   "aliases": [
+    "dcs",
+    "align"
+   ],
+   "desc": "pro only · search-derived prefix, effort held low (beta, not in the picker)"
   }
  ],
  "picker_default_mark": "*"
