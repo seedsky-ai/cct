@@ -51,6 +51,11 @@
 > by. Then the candidates went through the model itself, session after session, until one survived.
 > **What shipped is what the model's own internals voted for.**
 >
+> This builds on our group's published work on reading a model's reasoning state from its own
+> internals: [**JAR — Jacobian Axis Readout**](https://cckfdu.com/jar/) ([arXiv:2608.17638](https://arxiv.org/abs/2608.17638)).
+> JAR reads one model answering one question. cct is what happens when the same lens is pointed at
+> a whole agent session. The paper is open; the road from it to what ships in cct is not.
+>
 > **What we did not do — and this is the part that matters.** The proxies that put DeepSeek behind
 > Claude Code ([UniClaudeProxy](https://github.com/vibheksoni/UniClaudeProxy),
 > [claude-code-proxy](https://github.com/empero-org/claude-code-proxy),
@@ -144,7 +149,7 @@ Work as usual, then read the receipt on exit:
 [Requirements](#requirements) · [Quick start](#quick-start) · [Which tier](#which-tier-should-i-use) ·
 [Usage](#usage) · [Session modes](#three-session-modes) · [Exit receipt](#how-to-read-the-exit-receipt) ·
 [Environment variables](#environment-variables) · [Troubleshooting](#troubleshooting) · [Roadmap](#roadmap) · [FAQ](#faq) ·
-[Community](#community) · [License](#license)
+[Community](#community) · [Citation](#citation) · [License](#license)
 
 ---
 
@@ -708,6 +713,28 @@ In this mode there is no tier table; the default is pure passthrough + observati
 
 The WeChat code rotates every seven days — this one is **valid until 2026-09-15**. Once it expires,
 join over QQ instead, or email <hello@seedsky.ai> and we will post a fresh one.
+
+---
+
+## Citation
+
+The interpretability readout this work builds on:
+
+```bibtex
+@misc{chen2026jar,
+  title  = {Beyond the Trace: Coupling an Interpretable Reasoning-State
+            Readout to Native MoE Routing},
+  author = {Chen, Kang and Zhao, Sihan and Cao, Yixin and Jiang, Yu-Gang},
+  year   = {2026},
+  eprint = {2608.17638},
+  archivePrefix = {arXiv},
+  primaryClass = {cs.AI},
+  note   = {JAR --- Jacobian Axis Readout},
+  url    = {https://arxiv.org/abs/2608.17638},
+}
+```
+
+Project page: <https://cckfdu.com/jar/>
 
 ---
 

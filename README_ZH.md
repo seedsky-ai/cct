@@ -48,6 +48,9 @@
 > 而造的那套仪器——让这个读数而不是我们的直觉,来分辨模型是真的想得好,还是只是勉强应付。然后候选方案一个个
 > 过模型自己这一关,一场会话接一场会话,直到有一个活下来。**最后发布的,是模型自己的内部机理投票选出来的。**
 >
+> 这建立在本团队已发表的工作之上——从模型自身内部读取推理状态:[**JAR —— Jacobian Axis Readout**](https://cckfdu.com/jar/)([arXiv:2608.17638](https://arxiv.org/abs/2608.17638))。
+> JAR 读的是单个模型回答单个问题;cct 是把同一副镜头对准一整段 agent 会话之后的结果。论文是公开的,从论文走到 cct 里发布的东西,那段路不是。
+>
 > **以及我们没有做什么——这才是关键。** 把 DeepSeek 接到 Claude Code 后面的那些代理
 > ([UniClaudeProxy](https://github.com/vibheksoni/UniClaudeProxy)、
 > [claude-code-proxy](https://github.com/empero-org/claude-code-proxy)、
@@ -127,7 +130,7 @@ Choose 1-6 (Enter=default):
 [环境要求](#环境要求) · [快速上手](#快速上手) · [该选哪个档](#该选哪个档) ·
 [用法](#用法) · [三种会话模式](#三种会话模式) · [回执怎么读](#回执怎么读) ·
 [环境变量](#环境变量) · [故障排查](#故障排查) · [路线图](#路线图) · [常见问题](#常见问题) ·
-[交流群](#交流群) · [许可](#许可)
+[交流群](#交流群) · [引用](#引用) · [许可](#许可)
 
 ---
 
@@ -639,6 +642,28 @@ ANTHROPIC_BASE_URL=http://127.0.0.1:8301 ANTHROPIC_MODEL=deepseek-v4-flash \
 
 微信群码七天一换 —— 当前这张 **2026-09-15 前有效**。过期了可以走 QQ 群,或发邮件到 <hello@seedsky.ai>,
 我们会贴一张新的。
+
+---
+
+## 引用
+
+本工作所基于的可解释性读数:
+
+```bibtex
+@misc{chen2026jar,
+  title  = {Beyond the Trace: Coupling an Interpretable Reasoning-State
+            Readout to Native MoE Routing},
+  author = {Chen, Kang and Zhao, Sihan and Cao, Yixin and Jiang, Yu-Gang},
+  year   = {2026},
+  eprint = {2608.17638},
+  archivePrefix = {arXiv},
+  primaryClass = {cs.AI},
+  note   = {JAR --- Jacobian Axis Readout},
+  url    = {https://arxiv.org/abs/2608.17638},
+}
+```
+
+项目主页: <https://cckfdu.com/jar/>
 
 ---
 
