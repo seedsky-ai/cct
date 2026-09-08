@@ -51,10 +51,12 @@
 > by. Then the candidates went through the model itself, session after session, until one survived.
 > **What shipped is what the model's own internals voted for.**
 >
-> This builds on our group's published work on reading a model's reasoning state from its own
-> internals: [**JAR — Jacobian Axis Readout**](https://cckfdu.com/jar/) ([arXiv:2608.17638](https://arxiv.org/abs/2608.17638)).
-> JAR reads one model answering one question. cct is what happens when the same lens is pointed at
-> a whole agent session. The paper is open; the road from it to what ships in cct is not.
+> This builds on two pieces of our group's published work on reading a model's reasoning state
+> from its own internals: [**JAR — Jacobian Axis Readout**](https://cckfdu.com/jar/)
+> ([arXiv:2608.17638](https://arxiv.org/abs/2608.17638)) and [**RAD — Routing Agreement
+> Decoding**](https://cckfdu.com/rad/) ([arXiv:2606.22798](https://arxiv.org/abs/2606.22798)).
+> Both read one model answering one question. cct is what happens when the same lens is pointed at
+> a whole agent session. The papers are open; the road from them to what ships in cct is not.
 >
 > **What we did not do — and this is the part that matters.** The proxies that put DeepSeek behind
 > Claude Code ([UniClaudeProxy](https://github.com/vibheksoni/UniClaudeProxy),
@@ -718,7 +720,8 @@ join over QQ instead, or email <hello@seedsky.ai> and we will post a fresh one.
 
 ## Citation
 
-The interpretability readout this work builds on:
+This work builds on two papers — an interpretable reasoning-state readout, and the finding that a
+model's internal state carries a usable control signal for reasoning:
 
 ```bibtex
 @misc{chen2026jar,
@@ -734,7 +737,22 @@ The interpretability readout this work builds on:
 }
 ```
 
-Project page: <https://cckfdu.com/jar/>
+```bibtex
+@article{chen2026rad,
+  title   = {Does the Same Token Mean the Same State?
+             MoE Routing as Signal for Reasoning Control},
+  author  = {Chen, Kang and Yu, Mingshen and Nian, Junjie and
+             Wang, Yaoning and Cao, Yixin and Jiang, Yugang},
+  year    = {2026},
+  eprint  = {2606.22798},
+  archivePrefix = {arXiv},
+  primaryClass = {cs.CL},
+  note    = {Routing Agreement Decoding (RAD)},
+  url     = {https://arxiv.org/abs/2606.22798},
+}
+```
+
+Project pages: <https://cckfdu.com/jar/> · <https://cckfdu.com/rad/>
 
 ---
 

@@ -48,8 +48,10 @@
 > 而造的那套仪器——让这个读数而不是我们的直觉,来分辨模型是真的想得好,还是只是勉强应付。然后候选方案一个个
 > 过模型自己这一关,一场会话接一场会话,直到有一个活下来。**最后发布的,是模型自己的内部机理投票选出来的。**
 >
-> 这建立在本团队已发表的工作之上——从模型自身内部读取推理状态:[**JAR —— Jacobian Axis Readout**](https://cckfdu.com/jar/)([arXiv:2608.17638](https://arxiv.org/abs/2608.17638))。
-> JAR 读的是单个模型回答单个问题;cct 是把同一副镜头对准一整段 agent 会话之后的结果。论文是公开的,从论文走到 cct 里发布的东西,那段路不是。
+> 这件事建立在本团队两项已发表的工作之上——从模型自身内部读取推理状态:[**JAR —— Jacobian Axis Readout**](https://cckfdu.com/jar/)
+> ([arXiv:2608.17638](https://arxiv.org/abs/2608.17638))与 [**RAD —— Routing Agreement Decoding**](https://cckfdu.com/rad/)
+> ([arXiv:2606.22798](https://arxiv.org/abs/2606.22798))。两篇读的都是单个模型回答单个问题;cct 是把同一副
+> 镜头对准一整段 agent 会话之后的结果。论文是公开的,从论文走到 cct 里发布的东西,那段路不是。
 >
 > **以及我们没有做什么——这才是关键。** 把 DeepSeek 接到 Claude Code 后面的那些代理
 > ([UniClaudeProxy](https://github.com/vibheksoni/UniClaudeProxy)、
@@ -647,7 +649,7 @@ ANTHROPIC_BASE_URL=http://127.0.0.1:8301 ANTHROPIC_MODEL=deepseek-v4-flash \
 
 ## 引用
 
-本工作所基于的可解释性读数:
+本工作基于两篇论文——一个可解释的推理状态读数,以及"模型内部状态本身携带可用于控制推理的信号"这一发现:
 
 ```bibtex
 @misc{chen2026jar,
@@ -663,7 +665,22 @@ ANTHROPIC_BASE_URL=http://127.0.0.1:8301 ANTHROPIC_MODEL=deepseek-v4-flash \
 }
 ```
 
-项目主页: <https://cckfdu.com/jar/>
+```bibtex
+@article{chen2026rad,
+  title   = {Does the Same Token Mean the Same State?
+             MoE Routing as Signal for Reasoning Control},
+  author  = {Chen, Kang and Yu, Mingshen and Nian, Junjie and
+             Wang, Yaoning and Cao, Yixin and Jiang, Yugang},
+  year    = {2026},
+  eprint  = {2606.22798},
+  archivePrefix = {arXiv},
+  primaryClass = {cs.CL},
+  note    = {Routing Agreement Decoding (RAD)},
+  url     = {https://arxiv.org/abs/2606.22798},
+}
+```
+
+项目主页: <https://cckfdu.com/jar/> · <https://cckfdu.com/rad/>
 
 ---
 
