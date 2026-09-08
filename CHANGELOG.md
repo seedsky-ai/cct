@@ -11,6 +11,25 @@ This file records **user-visible changes** only: what capability was added, what
 
 ---
 
+## 0.2.0-beta.0 — 2026-09-08 · Beta channel
+
+First release on the `beta` dist-tag. No code changes relative to 0.1.12; the version is bumped so the
+six-tier build (0.1.10 – 0.1.12) can be installed and exercised as a pre-release without moving the
+`latest` tag, which still points at 0.1.6.
+
+Install: `npm i -g @seedsky/cct@beta`
+
+What this build contains, relative to the published 0.1.6:
+- Three pro-only register tiers — **Proven**, **Swift**, **Peak** — pinned to `deepseek-v4-pro` and held at
+  the effort level they were measured at (0.1.10).
+- Each tier family is spliced where it was measured: the tuned tiers before the billing header, the pro
+  register tiers after it (`splice_skip_billing`).
+- A stray `DA_EFFORT` can no longer unpin a tier (0.1.11).
+- The client's model name is pinned to a single-model tier's `force_model`, so Claude Code stops dropping
+  replayed thinking blocks when the launch name and the response name disagree (0.1.12).
+
+---
+
 ## 0.1.12 — 2026-09-04 · The client's model name must equal a single-model tier's `force_model`
 
 - **Documented a client-side failure the relay cannot repair.** Claude Code up to 2.1.219 drops
