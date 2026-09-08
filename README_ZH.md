@@ -17,6 +17,7 @@
 [![platform](https://img.shields.io/badge/platform-Linux%20%7C%20macOS%20%7C%20Windows-666)](#环境要求)
 [![license](https://img.shields.io/badge/license-see%20LICENSE-blue)](LICENSE)
 [![WeChat](https://img.shields.io/badge/WeChat-join-07C160?logo=wechat&logoColor=white)](#交流群)
+[![QQ](https://img.shields.io/badge/QQ-1019231337-12B7F5?logo=tencentqq&logoColor=white)](#交流群)
 
 [English](README.md) · **简体中文**
 
@@ -616,13 +617,21 @@ ANTHROPIC_BASE_URL=http://127.0.0.1:8301 ANTHROPIC_MODEL=deepseek-v4-flash \
 
 <div align="center">
 
-<img src="assets/wechat_group.jpg" width="250" alt="cct 用户交流群微信二维码">
-
-<sub>微信扫码进 <b>cct 用户交流群</b></sub>
+<table>
+<tr>
+<td align="center"><img src="assets/wechat-group.jpg" width="240" alt="cct 用户交流群微信二维码"></td>
+<td align="center"><img src="assets/qq-group.jpg" width="240" alt="cct 用户交流群 QQ 二维码,群号 1019231337"></td>
+</tr>
+<tr>
+<td align="center"><sub><b>微信</b>扫码 —— cct 用户交流群 1</sub></td>
+<td align="center"><sub><b>QQ</b> 扫码 —— cct 交流群 1 · 群号 <code>1019231337</code></sub></td>
+</tr>
+</table>
 
 </div>
 
-微信群码七天一换 —— 当前这张 **2026-08-25 前有效**。过期了发邮件到 <hello@seedsky.ai>，我们贴新的。
+微信群码七天一换 —— 当前这张 **2026-09-15 前有效**。过期了可以走 QQ 群,或发邮件到 <hello@seedsky.ai>,
+我们会贴一张新的。
 
 ---
 

@@ -17,6 +17,7 @@
 [![platform](https://img.shields.io/badge/platform-Linux%20%7C%20macOS%20%7C%20Windows-666)](#requirements)
 [![license](https://img.shields.io/badge/license-see%20LICENSE-blue)](LICENSE)
 [![WeChat](https://img.shields.io/badge/WeChat-join-07C160?logo=wechat&logoColor=white)](#community)
+[![QQ](https://img.shields.io/badge/QQ-1019231337-12B7F5?logo=tencentqq&logoColor=white)](#community)
 
 **English** · [简体中文](README_ZH.md)
 
@@ -690,14 +691,21 @@ In this mode there is no tier table; the default is pure passthrough + observati
 
 <div align="center">
 
-<img src="assets/wechat_group.jpg" width="250" alt="WeChat QR code for the cct user group">
-
-<sub>Scan with WeChat to join the <b>cct user group</b></sub>
+<table>
+<tr>
+<td align="center"><img src="assets/wechat-group.jpg" width="240" alt="WeChat QR code for the cct user group"></td>
+<td align="center"><img src="assets/qq-group.jpg" width="240" alt="QQ QR code for the cct user group, group number 1019231337"></td>
+</tr>
+<tr>
+<td align="center"><sub>Scan with <b>WeChat</b> — cct user group 1</sub></td>
+<td align="center"><sub>Scan with <b>QQ</b> — cct user group 1 · <code>1019231337</code></sub></td>
+</tr>
+</table>
 
 </div>
 
-WeChat group codes rotate every seven days — this one is **valid until 2026-08-25**. Once it expires,
-email <hello@seedsky.ai> and we will post a fresh one.
+The WeChat code rotates every seven days — this one is **valid until 2026-09-15**. Once it expires,
+join over QQ instead, or email <hello@seedsky.ai> and we will post a fresh one.
 
 ---
 
